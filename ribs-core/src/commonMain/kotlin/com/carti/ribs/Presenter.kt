@@ -1,8 +1,6 @@
 package com.carti.ribs
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -23,14 +21,17 @@ public abstract class Presenter {
     /** 생명주기 이벤트 스트림. 마지막 이벤트를 새 구독자에게 다시 보낸다. */
     public open val lifecycleFlow: SharedFlow<PresenterEvent> = lifecycleEvents.asSharedFlow()
 
-    private var loadedScope: CoroutineScope? = null
+    private val loadedScope = LifecycleScope(this::class.simpleName ?: "Presenter")
 
     protected var isLoaded: Boolean = false
         private set
 
-    /** 로드 구간에 묶인 스코프. 언로드되면 취소된다. */
+    /**
+     * 로드 구간에 묶인 스코프. 언로드되면 취소된다.
+     * 로드 전에는 [LifecycleNotStartedException], 언로드 후에는 [LifecycleEndedException]을 던진다.
+     */
     public val coroutineScope: CoroutineScope
-        get() = checkNotNull(loadedScope) { "${this::class.simpleName} is not loaded" }
+        get() = loadedScope.scope
 
     /** 로드된 뒤 호출된다. */
     protected open fun didLoad() {}
@@ -41,17 +42,16 @@ public abstract class Presenter {
     public fun dispatchLoad() {
         check(!isLoaded) { "${this::class.simpleName} is already loaded" }
         isLoaded = true
-        loadedScope = CoroutineScope(SupervisorJob() + RibDispatchers.Main)
+        loadedScope.start()
         lifecycleEvents.tryEmit(PresenterEvent.LOADED)
         didLoad()
     }
 
     public fun dispatchUnload() {
-        val scope = checkNotNull(loadedScope) { "${this::class.simpleName} is not loaded" }
+        check(isLoaded) { "${this::class.simpleName} is not loaded" }
         isLoaded = false
         willUnload()
-        loadedScope = null
-        scope.cancel()
+        loadedScope.end()
         lifecycleEvents.tryEmit(PresenterEvent.UNLOADED)
     }
 }

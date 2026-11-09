@@ -34,8 +34,8 @@
 
 | 원본 파일 | 상태 | 우리 파일 | 비고 |
 |---|---|---|---|
-| `RibDispatchers.kt` | ✅ | `RibDispatchers.kt` | `Main`, `Default`, `Unconfined`. 원본의 `IO`는 JS에 없어서 뺌. `Main.immediate` 미사용(아래 차이 참고) |
-| `RibCoroutinesConfig.kt` | 🔶 | `RibDispatchers.kt` 안 | 디스패처 교체만 있음. 원본의 전역 예외 핸들러, `shouldCoroutineScopeFailSilentlyOnLifecycleEnded` 없음 |
+| `RibDispatchers.kt` | ✅ | `RibDispatchers.kt` | `Main`, `MainImmediate`, `Default`, `Unconfined`. 원본의 `IO`는 JS에 없어서 뺌 |
+| `RibCoroutinesConfig.kt` | ✅ | `RibDispatchers.kt` 안 | `dispatchers`, `exceptionHandler`, `shouldCoroutineScopeFailSilentlyOnLifecycleEnded` |
 | `RibCoroutineScopes.kt` | 🔶 | `Interactor.coroutineScope`, `Presenter.coroutineScope` | 원본은 `ScopeProvider` 확장 + WeakHashMap 캐시. 우리는 클래스 멤버로 활성 구간마다 새 스코프. `Application.coroutineScope`는 Android 전용이라 없음 |
 
 ## rib-android / rib-android-core
@@ -58,8 +58,10 @@
 | `Component.kt`의 `Dependency`, `EmptyDependency`, `EmptyComponent`, `Component.shared` | RIBs-iOS 방식 수동 DI(ADR-0003) |
 | `RibMount.kt`의 `ViewHost`, `mount`, `RibMount` | RIB 없는 호스트에 하위 트리 장착 |
 
-## 확인된 미세한 차이 (후속 검토 대상)
+## 스코프 세부 동작 (원본에 맞춤)
 
-1. **`Main.immediate`**: 원본 `coroutineScope`는 `RibDispatchers.Main.immediate`를 쓴다. 우리는 `Main`을 쓰므로, `didBecomeActive`에서 `launch`한 코드가 바로 실행되지 않고 한 번 디스패치된다. `RibDispatchersProvider`에 `MainImmediate`를 추가해 맞추는 것이 좋다.
-2. **스코프 이름·예외 핸들러**: 원본은 스코프에 `CoroutineName(클래스명)`과 전역 예외 핸들러를 붙인다. 우리는 둘 다 없다.
-3. **비활성 후 `coroutineScope` 접근**: 원본은 `LifecycleEndedException`(설정에 따라 이미 취소된 스코프 반환). 우리는 `IllegalStateException`.
+1. **`Main.immediate`**: 스코프는 `RibDispatchers.MainImmediate`를 쓴다. JS처럼 즉시 디스패치를 지원하지 않는 플랫폼에서는 `Main`으로 대신하므로, JS에서만 `launch`가 한 번 디스패치된다.
+2. **스코프 이름·예외 핸들러**: `CoroutineName(클래스명)`과 `RibCoroutinesConfig.exceptionHandler`를 붙인다.
+3. **구간 밖 접근**: 시작 전에는 `LifecycleNotStartedException`, 끝난 뒤에는 `LifecycleEndedException`(둘 다 `IllegalStateException` 하위). `shouldCoroutineScopeFailSilentlyOnLifecycleEnded`가 true면 끝난 뒤에 이미 취소된 스코프를 돌려준다. 예외 클래스는 AutoDispose가 JVM 전용이라 공통 코드에 같은 이름으로 정의했다.
+
+남은 차이: 원본은 receiver별 스코프를 WeakHashMap에 캐시하지만, 우리는 활성 구간마다 멤버로 새 스코프를 만든다(동작상 같은 결과).

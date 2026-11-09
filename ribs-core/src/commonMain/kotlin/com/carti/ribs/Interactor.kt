@@ -1,8 +1,6 @@
 package com.carti.ribs
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -29,18 +27,21 @@ public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : In
     /** 생명주기 이벤트 스트림. 마지막 이벤트를 새 구독자에게 다시 보낸다(원본의 BehaviorRelay). */
     public val lifecycle: SharedFlow<InteractorEvent> = lifecycleEvents.asSharedFlow()
 
-    private var activeScope: CoroutineScope? = null
+    private val activeScope = LifecycleScope(this::class.simpleName ?: "Interactor")
     private var attachedRouter: R? = null
 
     /** 이 Interactor의 Router. Router가 생성될 때 연결된다. */
     public val router: R
         get() = checkNotNull(attachedRouter) { "Router is not set for ${this::class.simpleName}" }
 
-    /** 활성 구간에 묶인 스코프. Uber `rib-coroutines`의 `Interactor.coroutineScope`에 대응한다. */
+    /**
+     * 활성 구간에 묶인 스코프. Uber `rib-coroutines`의 `Interactor.coroutineScope`에 대응한다.
+     * 활성 전에는 [LifecycleNotStartedException], 비활성 후에는 [LifecycleEndedException]을 던진다.
+     */
     public val coroutineScope: CoroutineScope
-        get() = checkNotNull(activeScope) { "${this::class.simpleName} is not attached" }
+        get() = activeScope.scope
 
-    final override fun isAttached(): Boolean = activeScope != null
+    final override fun isAttached(): Boolean = activeScope.isActive
 
     /** 활성화될 때 호출된다. */
     protected open fun didBecomeActive(savedInstanceState: RibState?) {}
@@ -66,18 +67,17 @@ public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : In
 
     internal fun dispatchAttach(savedInstanceState: RibState?) {
         check(!isAttached()) { "${this::class.simpleName} is already attached" }
-        activeScope = CoroutineScope(SupervisorJob() + RibDispatchers.Main)
+        activeScope.start()
         lifecycleEvents.tryEmit(InteractorEvent.ACTIVE)
         (presenter as? Presenter)?.dispatchLoad()
         didBecomeActive(savedInstanceState)
     }
 
     internal fun dispatchDetach(): P {
-        val scope = checkNotNull(activeScope) { "${this::class.simpleName} is not attached" }
+        check(isAttached()) { "${this::class.simpleName} is not attached" }
         (presenter as? Presenter)?.dispatchUnload()
         willResignActive()
-        activeScope = null
-        scope.cancel()
+        activeScope.end()
         lifecycleEvents.tryEmit(InteractorEvent.INACTIVE)
         return presenter
     }
