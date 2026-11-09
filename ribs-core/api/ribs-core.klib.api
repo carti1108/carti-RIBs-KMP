@@ -1,0 +1,240 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <carti-ribs-kmp:ribs-core>
+final enum class com.carti.ribs/InteractorEvent : kotlin/Enum<com.carti.ribs/InteractorEvent> { // com.carti.ribs/InteractorEvent|null[0]
+    enum entry ACTIVE // com.carti.ribs/InteractorEvent.ACTIVE|null[0]
+    enum entry INACTIVE // com.carti.ribs/InteractorEvent.INACTIVE|null[0]
+
+    final val entries // com.carti.ribs/InteractorEvent.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.carti.ribs/InteractorEvent> // com.carti.ribs/InteractorEvent.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.carti.ribs/InteractorEvent // com.carti.ribs/InteractorEvent.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.carti.ribs/InteractorEvent> // com.carti.ribs/InteractorEvent.values|values#static(){}[0]
+}
+
+final enum class com.carti.ribs/PresenterEvent : kotlin/Enum<com.carti.ribs/PresenterEvent> { // com.carti.ribs/PresenterEvent|null[0]
+    enum entry LOADED // com.carti.ribs/PresenterEvent.LOADED|null[0]
+    enum entry UNLOADED // com.carti.ribs/PresenterEvent.UNLOADED|null[0]
+
+    final val entries // com.carti.ribs/PresenterEvent.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.carti.ribs/PresenterEvent> // com.carti.ribs/PresenterEvent.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.carti.ribs/PresenterEvent // com.carti.ribs/PresenterEvent.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.carti.ribs/PresenterEvent> // com.carti.ribs/PresenterEvent.values|values#static(){}[0]
+}
+
+abstract fun interface com.carti.ribs/RibCoroutineWorker { // com.carti.ribs/RibCoroutineWorker|null[0]
+    abstract suspend fun onStart(kotlinx.coroutines/CoroutineScope) // com.carti.ribs/RibCoroutineWorker.onStart|onStart(kotlinx.coroutines.CoroutineScope){}[0]
+    open fun onStop(kotlin/Throwable) // com.carti.ribs/RibCoroutineWorker.onStop|onStop(kotlin.Throwable){}[0]
+}
+
+abstract interface <#A: in com.carti.ribs/ViewControllable> com.carti.ribs/ViewHost { // com.carti.ribs/ViewHost|null[0]
+    abstract fun hide(#A) // com.carti.ribs/ViewHost.hide|hide(1:0){}[0]
+    abstract fun show(#A) // com.carti.ribs/ViewHost.show|show(1:0){}[0]
+}
+
+abstract interface com.carti.ribs/BindWorkerHandle { // com.carti.ribs/BindWorkerHandle|null[0]
+    abstract val bindJob // com.carti.ribs/BindWorkerHandle.bindJob|{}bindJob[0]
+        abstract fun <get-bindJob>(): kotlinx.coroutines/Job // com.carti.ribs/BindWorkerHandle.bindJob.<get-bindJob>|<get-bindJob>(){}[0]
+
+    abstract fun unbind(): kotlinx.coroutines/Job // com.carti.ribs/BindWorkerHandle.unbind|unbind(){}[0]
+}
+
+abstract interface com.carti.ribs/Dependency // com.carti.ribs/Dependency|null[0]
+
+abstract interface com.carti.ribs/EmptyDependency : com.carti.ribs/Dependency // com.carti.ribs/EmptyDependency|null[0]
+
+abstract interface com.carti.ribs/InteractorType { // com.carti.ribs/InteractorType|null[0]
+    abstract fun handleBackPress(): kotlin/Boolean // com.carti.ribs/InteractorType.handleBackPress|handleBackPress(){}[0]
+    abstract fun isAttached(): kotlin/Boolean // com.carti.ribs/InteractorType.isAttached|isAttached(){}[0]
+}
+
+abstract interface com.carti.ribs/RibDispatchersProvider { // com.carti.ribs/RibDispatchersProvider|null[0]
+    abstract val Default // com.carti.ribs/RibDispatchersProvider.Default|{}Default[0]
+        abstract fun <get-Default>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchersProvider.Default.<get-Default>|<get-Default>(){}[0]
+    abstract val Main // com.carti.ribs/RibDispatchersProvider.Main|{}Main[0]
+        abstract fun <get-Main>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchersProvider.Main.<get-Main>|<get-Main>(){}[0]
+    abstract val MainImmediate // com.carti.ribs/RibDispatchersProvider.MainImmediate|{}MainImmediate[0]
+        abstract fun <get-MainImmediate>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchersProvider.MainImmediate.<get-MainImmediate>|<get-MainImmediate>(){}[0]
+    abstract val Unconfined // com.carti.ribs/RibDispatchersProvider.Unconfined|{}Unconfined[0]
+        abstract fun <get-Unconfined>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchersProvider.Unconfined.<get-Unconfined>|<get-Unconfined>(){}[0]
+}
+
+abstract interface com.carti.ribs/ViewControllable // com.carti.ribs/ViewControllable|null[0]
+
+abstract class <#A: com.carti.ribs/Dependency> com.carti.ribs/Builder { // com.carti.ribs/Builder|null[0]
+    constructor <init>(#A) // com.carti.ribs/Builder.<init>|<init>(1:0){}[0]
+
+    final val dependency // com.carti.ribs/Builder.dependency|{}dependency[0]
+        final fun <get-dependency>(): #A // com.carti.ribs/Builder.dependency.<get-dependency>|<get-dependency>(){}[0]
+}
+
+abstract class <#A: com.carti.ribs/InteractorType> com.carti.ribs/Router { // com.carti.ribs/Router|null[0]
+    constructor <init>(#A) // com.carti.ribs/Router.<init>|<init>(1:0){}[0]
+
+    open val interactor // com.carti.ribs/Router.interactor|{}interactor[0]
+        open fun <get-interactor>(): #A // com.carti.ribs/Router.interactor.<get-interactor>|<get-interactor>(){}[0]
+
+    final var tag // com.carti.ribs/Router.tag|{}tag[0]
+        final fun <get-tag>(): kotlin/String? // com.carti.ribs/Router.tag.<get-tag>|<get-tag>(){}[0]
+
+    final fun attachChild(com.carti.ribs/Router<*>) // com.carti.ribs/Router.attachChild|attachChild(com.carti.ribs.Router<*>){}[0]
+    final fun attachChild(com.carti.ribs/Router<*>, kotlin/String) // com.carti.ribs/Router.attachChild|attachChild(com.carti.ribs.Router<*>;kotlin.String){}[0]
+    final fun detachChild(com.carti.ribs/Router<*>) // com.carti.ribs/Router.detachChild|detachChild(com.carti.ribs.Router<*>){}[0]
+    final fun dispatchAttach(com.carti.ribs/RibState?) // com.carti.ribs/Router.dispatchAttach|dispatchAttach(com.carti.ribs.RibState?){}[0]
+    final fun dispatchAttach(com.carti.ribs/RibState?, kotlin/String) // com.carti.ribs/Router.dispatchAttach|dispatchAttach(com.carti.ribs.RibState?;kotlin.String){}[0]
+    final fun dispatchDetach() // com.carti.ribs/Router.dispatchDetach|dispatchDetach(){}[0]
+    final fun getChildren(): kotlin.collections/List<com.carti.ribs/Router<*>> // com.carti.ribs/Router.getChildren|getChildren(){}[0]
+    final fun saveInstanceStateInternal(): com.carti.ribs/RibState // com.carti.ribs/Router.saveInstanceStateInternal|saveInstanceStateInternal(){}[0]
+    open fun attachToInteractor() // com.carti.ribs/Router.attachToInteractor|attachToInteractor(){}[0]
+    open fun didLoad() // com.carti.ribs/Router.didLoad|didLoad(){}[0]
+    open fun handleBackPress(): kotlin/Boolean // com.carti.ribs/Router.handleBackPress|handleBackPress(){}[0]
+    open fun willAttach() // com.carti.ribs/Router.willAttach|willAttach(){}[0]
+    open fun willDetach() // com.carti.ribs/Router.willDetach|willDetach(){}[0]
+
+    final object Companion { // com.carti.ribs/Router.Companion|null[0]
+        final const val KEY_CHILD_ROUTERS // com.carti.ribs/Router.Companion.KEY_CHILD_ROUTERS|{}KEY_CHILD_ROUTERS[0]
+            final fun <get-KEY_CHILD_ROUTERS>(): kotlin/String // com.carti.ribs/Router.Companion.KEY_CHILD_ROUTERS.<get-KEY_CHILD_ROUTERS>|<get-KEY_CHILD_ROUTERS>(){}[0]
+        final const val KEY_INTERACTOR // com.carti.ribs/Router.Companion.KEY_INTERACTOR|{}KEY_INTERACTOR[0]
+            final fun <get-KEY_INTERACTOR>(): kotlin/String // com.carti.ribs/Router.Companion.KEY_INTERACTOR.<get-KEY_INTERACTOR>|<get-KEY_INTERACTOR>(){}[0]
+    }
+}
+
+abstract class <#A: com.carti.ribs/ViewControllable, #B: com.carti.ribs/InteractorType> com.carti.ribs/LaunchRouter : com.carti.ribs/ViewRouter<#A, #B> { // com.carti.ribs/LaunchRouter|null[0]
+    constructor <init>(#A, #B) // com.carti.ribs/LaunchRouter.<init>|<init>(1:0;1:1){}[0]
+
+    final fun launch(com.carti.ribs/ViewHost<#A>, com.carti.ribs/RibState? = ...) // com.carti.ribs/LaunchRouter.launch|launch(com.carti.ribs.ViewHost<1:0>;com.carti.ribs.RibState?){}[0]
+    final fun shutdown() // com.carti.ribs/LaunchRouter.shutdown|shutdown(){}[0]
+}
+
+abstract class <#A: com.carti.ribs/ViewControllable, #B: com.carti.ribs/InteractorType> com.carti.ribs/ViewRouter : com.carti.ribs/Router<#B> { // com.carti.ribs/ViewRouter|null[0]
+    constructor <init>(#A, #B) // com.carti.ribs/ViewRouter.<init>|<init>(1:0;1:1){}[0]
+
+    final val view // com.carti.ribs/ViewRouter.view|{}view[0]
+        final fun <get-view>(): #A // com.carti.ribs/ViewRouter.view.<get-view>|<get-view>(){}[0]
+}
+
+abstract class <#A: kotlin/Any?, #B: com.carti.ribs/Router<*>> com.carti.ribs/Interactor : com.carti.ribs/InteractorType { // com.carti.ribs/Interactor|null[0]
+    constructor <init>(#A) // com.carti.ribs/Interactor.<init>|<init>(1:0){}[0]
+
+    final val coroutineScope // com.carti.ribs/Interactor.coroutineScope|{}coroutineScope[0]
+        final fun <get-coroutineScope>(): kotlinx.coroutines/CoroutineScope // com.carti.ribs/Interactor.coroutineScope.<get-coroutineScope>|<get-coroutineScope>(){}[0]
+    final val lifecycle // com.carti.ribs/Interactor.lifecycle|{}lifecycle[0]
+        final fun <get-lifecycle>(): kotlinx.coroutines.flow/SharedFlow<com.carti.ribs/InteractorEvent> // com.carti.ribs/Interactor.lifecycle.<get-lifecycle>|<get-lifecycle>(){}[0]
+    final val presenter // com.carti.ribs/Interactor.presenter|{}presenter[0]
+        final fun <get-presenter>(): #A // com.carti.ribs/Interactor.presenter.<get-presenter>|<get-presenter>(){}[0]
+    final val router // com.carti.ribs/Interactor.router|{}router[0]
+        final fun <get-router>(): #B // com.carti.ribs/Interactor.router.<get-router>|<get-router>(){}[0]
+
+    final fun isAttached(): kotlin/Boolean // com.carti.ribs/Interactor.isAttached|isAttached(){}[0]
+    open fun didBecomeActive(com.carti.ribs/RibState?) // com.carti.ribs/Interactor.didBecomeActive|didBecomeActive(com.carti.ribs.RibState?){}[0]
+    open fun handleBackPress(): kotlin/Boolean // com.carti.ribs/Interactor.handleBackPress|handleBackPress(){}[0]
+    open fun onSaveInstanceState(kotlin.collections/MutableMap<kotlin/String, kotlin/Any?>) // com.carti.ribs/Interactor.onSaveInstanceState|onSaveInstanceState(kotlin.collections.MutableMap<kotlin.String,kotlin.Any?>){}[0]
+    open fun willResignActive() // com.carti.ribs/Interactor.willResignActive|willResignActive(){}[0]
+}
+
+abstract class com.carti.ribs/Presenter { // com.carti.ribs/Presenter|null[0]
+    constructor <init>() // com.carti.ribs/Presenter.<init>|<init>(){}[0]
+
+    final val coroutineScope // com.carti.ribs/Presenter.coroutineScope|{}coroutineScope[0]
+        final fun <get-coroutineScope>(): kotlinx.coroutines/CoroutineScope // com.carti.ribs/Presenter.coroutineScope.<get-coroutineScope>|<get-coroutineScope>(){}[0]
+    open val lifecycleFlow // com.carti.ribs/Presenter.lifecycleFlow|{}lifecycleFlow[0]
+        open fun <get-lifecycleFlow>(): kotlinx.coroutines.flow/SharedFlow<com.carti.ribs/PresenterEvent> // com.carti.ribs/Presenter.lifecycleFlow.<get-lifecycleFlow>|<get-lifecycleFlow>(){}[0]
+
+    final var isLoaded // com.carti.ribs/Presenter.isLoaded|{}isLoaded[0]
+        final fun <get-isLoaded>(): kotlin/Boolean // com.carti.ribs/Presenter.isLoaded.<get-isLoaded>|<get-isLoaded>(){}[0]
+
+    final fun dispatchLoad() // com.carti.ribs/Presenter.dispatchLoad|dispatchLoad(){}[0]
+    final fun dispatchUnload() // com.carti.ribs/Presenter.dispatchUnload|dispatchUnload(){}[0]
+    open fun didLoad() // com.carti.ribs/Presenter.didLoad|didLoad(){}[0]
+    open fun willUnload() // com.carti.ribs/Presenter.willUnload|willUnload(){}[0]
+}
+
+final class com.carti.ribs/EmptyComponent : com.carti.ribs/EmptyDependency { // com.carti.ribs/EmptyComponent|null[0]
+    constructor <init>() // com.carti.ribs/EmptyComponent.<init>|<init>(){}[0]
+}
+
+final class com.carti.ribs/LifecycleEndedException : kotlin/IllegalStateException { // com.carti.ribs/LifecycleEndedException|null[0]
+    constructor <init>(kotlin/String) // com.carti.ribs/LifecycleEndedException.<init>|<init>(kotlin.String){}[0]
+}
+
+final class com.carti.ribs/LifecycleNotStartedException : kotlin/IllegalStateException { // com.carti.ribs/LifecycleNotStartedException|null[0]
+    constructor <init>(kotlin/String) // com.carti.ribs/LifecycleNotStartedException.<init>|<init>(kotlin.String){}[0]
+}
+
+final class com.carti.ribs/RibMount { // com.carti.ribs/RibMount|null[0]
+    final var isMounted // com.carti.ribs/RibMount.isMounted|{}isMounted[0]
+        final fun <get-isMounted>(): kotlin/Boolean // com.carti.ribs/RibMount.isMounted.<get-isMounted>|<get-isMounted>(){}[0]
+
+    final fun unmount() // com.carti.ribs/RibMount.unmount|unmount(){}[0]
+}
+
+final class com.carti.ribs/RibState { // com.carti.ribs/RibState|null[0]
+    constructor <init>(kotlin.collections/Map<kotlin/String, kotlin/Any?> = ...) // com.carti.ribs/RibState.<init>|<init>(kotlin.collections.Map<kotlin.String,kotlin.Any?>){}[0]
+
+    final val keys // com.carti.ribs/RibState.keys|{}keys[0]
+        final fun <get-keys>(): kotlin.collections/Set<kotlin/String> // com.carti.ribs/RibState.keys.<get-keys>|<get-keys>(){}[0]
+
+    final fun contains(kotlin/String): kotlin/Boolean // com.carti.ribs/RibState.contains|contains(kotlin.String){}[0]
+    final fun get(kotlin/String): kotlin/Any? // com.carti.ribs/RibState.get|get(kotlin.String){}[0]
+}
+
+open class <#A: com.carti.ribs/Dependency> com.carti.ribs/Component { // com.carti.ribs/Component|null[0]
+    constructor <init>(#A) // com.carti.ribs/Component.<init>|<init>(1:0){}[0]
+
+    final val dependency // com.carti.ribs/Component.dependency|{}dependency[0]
+        final fun <get-dependency>(): #A // com.carti.ribs/Component.dependency.<get-dependency>|<get-dependency>(){}[0]
+
+    final fun <#A1: kotlin/Any?> shared(kotlin/Function0<#A1>): kotlin/Lazy<#A1> // com.carti.ribs/Component.shared|shared(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
+}
+
+final object com.carti.ribs/DefaultRibDispatchers : com.carti.ribs/RibDispatchersProvider { // com.carti.ribs/DefaultRibDispatchers|null[0]
+    final val Default // com.carti.ribs/DefaultRibDispatchers.Default|{}Default[0]
+        final fun <get-Default>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/DefaultRibDispatchers.Default.<get-Default>|<get-Default>(){}[0]
+    final val Main // com.carti.ribs/DefaultRibDispatchers.Main|{}Main[0]
+        final fun <get-Main>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/DefaultRibDispatchers.Main.<get-Main>|<get-Main>(){}[0]
+    final val MainImmediate // com.carti.ribs/DefaultRibDispatchers.MainImmediate|{}MainImmediate[0]
+        final fun <get-MainImmediate>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/DefaultRibDispatchers.MainImmediate.<get-MainImmediate>|<get-MainImmediate>(){}[0]
+    final val Unconfined // com.carti.ribs/DefaultRibDispatchers.Unconfined|{}Unconfined[0]
+        final fun <get-Unconfined>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/DefaultRibDispatchers.Unconfined.<get-Unconfined>|<get-Unconfined>(){}[0]
+}
+
+final object com.carti.ribs/RibCoroutinesConfig { // com.carti.ribs/RibCoroutinesConfig|null[0]
+    final var dispatchers // com.carti.ribs/RibCoroutinesConfig.dispatchers|{}dispatchers[0]
+        final fun <get-dispatchers>(): com.carti.ribs/RibDispatchersProvider // com.carti.ribs/RibCoroutinesConfig.dispatchers.<get-dispatchers>|<get-dispatchers>(){}[0]
+        final fun <set-dispatchers>(com.carti.ribs/RibDispatchersProvider) // com.carti.ribs/RibCoroutinesConfig.dispatchers.<set-dispatchers>|<set-dispatchers>(com.carti.ribs.RibDispatchersProvider){}[0]
+    final var exceptionHandler // com.carti.ribs/RibCoroutinesConfig.exceptionHandler|{}exceptionHandler[0]
+        final fun <get-exceptionHandler>(): kotlinx.coroutines/CoroutineExceptionHandler? // com.carti.ribs/RibCoroutinesConfig.exceptionHandler.<get-exceptionHandler>|<get-exceptionHandler>(){}[0]
+        final fun <set-exceptionHandler>(kotlinx.coroutines/CoroutineExceptionHandler?) // com.carti.ribs/RibCoroutinesConfig.exceptionHandler.<set-exceptionHandler>|<set-exceptionHandler>(kotlinx.coroutines.CoroutineExceptionHandler?){}[0]
+    final var shouldCoroutineScopeFailSilentlyOnLifecycleEnded // com.carti.ribs/RibCoroutinesConfig.shouldCoroutineScopeFailSilentlyOnLifecycleEnded|{}shouldCoroutineScopeFailSilentlyOnLifecycleEnded[0]
+        final fun <get-shouldCoroutineScopeFailSilentlyOnLifecycleEnded>(): kotlin/Boolean // com.carti.ribs/RibCoroutinesConfig.shouldCoroutineScopeFailSilentlyOnLifecycleEnded.<get-shouldCoroutineScopeFailSilentlyOnLifecycleEnded>|<get-shouldCoroutineScopeFailSilentlyOnLifecycleEnded>(){}[0]
+        final fun <set-shouldCoroutineScopeFailSilentlyOnLifecycleEnded>(kotlin/Boolean) // com.carti.ribs/RibCoroutinesConfig.shouldCoroutineScopeFailSilentlyOnLifecycleEnded.<set-shouldCoroutineScopeFailSilentlyOnLifecycleEnded>|<set-shouldCoroutineScopeFailSilentlyOnLifecycleEnded>(kotlin.Boolean){}[0]
+
+    final fun reset() // com.carti.ribs/RibCoroutinesConfig.reset|reset(){}[0]
+}
+
+final object com.carti.ribs/RibDispatchers : com.carti.ribs/RibDispatchersProvider { // com.carti.ribs/RibDispatchers|null[0]
+    final val Default // com.carti.ribs/RibDispatchers.Default|{}Default[0]
+        final fun <get-Default>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchers.Default.<get-Default>|<get-Default>(){}[0]
+    final val Main // com.carti.ribs/RibDispatchers.Main|{}Main[0]
+        final fun <get-Main>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchers.Main.<get-Main>|<get-Main>(){}[0]
+    final val MainImmediate // com.carti.ribs/RibDispatchers.MainImmediate|{}MainImmediate[0]
+        final fun <get-MainImmediate>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchers.MainImmediate.<get-MainImmediate>|<get-MainImmediate>(){}[0]
+    final val Unconfined // com.carti.ribs/RibDispatchers.Unconfined|{}Unconfined[0]
+        final fun <get-Unconfined>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchers.Unconfined.<get-Unconfined>|<get-Unconfined>(){}[0]
+}
+
+final object com.carti.ribs/Ribs { // com.carti.ribs/Ribs|null[0]
+    final const val VERSION // com.carti.ribs/Ribs.VERSION|{}VERSION[0]
+        final fun <get-VERSION>(): kotlin/String // com.carti.ribs/Ribs.VERSION.<get-VERSION>|<get-VERSION>(){}[0]
+}
+
+final fun (com.carti.ribs/Router<*>).com.carti.ribs/mount(com.carti.ribs/RibState? = ...): com.carti.ribs/RibMount // com.carti.ribs/mount|mount@com.carti.ribs.Router<*>(com.carti.ribs.RibState?){}[0]
+final fun (kotlinx.coroutines/CoroutineScope).com.carti.ribs/bind(com.carti.ribs/RibCoroutineWorker, kotlin.coroutines/CoroutineContext = ...): com.carti.ribs/BindWorkerHandle // com.carti.ribs/bind|bind@kotlinx.coroutines.CoroutineScope(com.carti.ribs.RibCoroutineWorker;kotlin.coroutines.CoroutineContext){}[0]
+final fun (kotlinx.coroutines/CoroutineScope).com.carti.ribs/bind(kotlin.collections/Iterable<com.carti.ribs/RibCoroutineWorker>, kotlin.coroutines/CoroutineContext = ...) // com.carti.ribs/bind|bind@kotlinx.coroutines.CoroutineScope(kotlin.collections.Iterable<com.carti.ribs.RibCoroutineWorker>;kotlin.coroutines.CoroutineContext){}[0]
+final fun <#A: com.carti.ribs/ViewControllable> (com.carti.ribs/ViewRouter<#A, *>).com.carti.ribs/mount(com.carti.ribs/ViewHost<#A>, com.carti.ribs/RibState? = ...): com.carti.ribs/RibMount // com.carti.ribs/mount|mount@com.carti.ribs.ViewRouter<0:0,*>(com.carti.ribs.ViewHost<0:0>;com.carti.ribs.RibState?){0§<com.carti.ribs.ViewControllable>}[0]

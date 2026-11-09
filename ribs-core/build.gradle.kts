@@ -5,6 +5,11 @@ plugins {
 kotlin {
     explicitApi()
 
+    @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
+    abiValidation {
+        enabled.set(true)
+    }
+
     jvm()
     js {
         nodejs()
