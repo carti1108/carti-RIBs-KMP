@@ -12,7 +12,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | 단계 | 내용 | 상태 |
 |---|---|---|
 | M0 | Gradle KMP 골격, 테스트 실행 | 완료 (JVM, JS) |
-| M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS). iOS/macOS는 Mac에서 확인 필요 |
+| M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS, Android). iOS/macOS는 CI 또는 Mac에서 확인 필요 |
 | M2 | xcframework, Flow → Swift 브리지, SwiftUI 샘플 | 예정 (Mac 필요) |
 
 ## 빠른 시작
@@ -43,7 +43,8 @@ JDK 17 이상이 필요합니다 (Android Studio 내장 JBR 사용 가능).
 ./gradlew :ribs-core:updateKotlinAbi              # 공개 API를 의도적으로 바꿨을 때 덤프 갱신
 ```
 
-Apple 타깃은 선언만 되어 있고 Windows/Linux에서는 건너뜁니다.
+Android 타깃은 SDK 경로가 필요합니다(`local.properties`의 `sdk.dir` 또는 `ANDROID_HOME`).
+Apple 타깃은 Windows/Linux에서 건너뛰고, CI의 macOS 잡에서 테스트합니다.
 
 ## 문서
 
