@@ -68,11 +68,13 @@ public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : In
         check(!isAttached()) { "${this::class.simpleName} is already attached" }
         activeScope = CoroutineScope(SupervisorJob() + RibDispatchers.Main)
         lifecycleEvents.tryEmit(InteractorEvent.ACTIVE)
+        (presenter as? Presenter)?.dispatchLoad()
         didBecomeActive(savedInstanceState)
     }
 
     internal fun dispatchDetach(): P {
         val scope = checkNotNull(activeScope) { "${this::class.simpleName} is not attached" }
+        (presenter as? Presenter)?.dispatchUnload()
         willResignActive()
         activeScope = null
         scope.cancel()

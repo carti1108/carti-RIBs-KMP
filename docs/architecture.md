@@ -55,3 +55,5 @@ detach할 때 (`parent.detachChild(child)`):
 | 붙지 않은 자식 detach 시에도 `dispatchDetach` 호출 | 아무 일도 하지 않음 | 비활성 Interactor의 이중 비활성화 방지 |
 | RIB 이벤트 버스(`RibEvents`), breadcrumb 로그 | 아직 없음 | 필요해지면 Flow로 추가 |
 | 메인 스레드 검사 | 없음 (계약으로만) | ADR-0005 |
+| Presenter `lifecycle()` Observable, `requestScope()` | `lifecycleFlow`, 로드 구간 `coroutineScope` | ADR-0002 |
+| Presenter 중복 로드·로드 전 언로드에 가드 없음 | 실패시킴 | 로드 구간 스코프가 겹치지 않게 |
