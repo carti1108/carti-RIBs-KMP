@@ -36,7 +36,7 @@ class RibCoroutineWorkerTest {
         val handle = interactor.coroutineScope.bind(worker)
 
         assertTrue(worker.started)
-        assertTrue(handle.isCompleted)
+        assertTrue(handle.bindJob.isCompleted)
     }
 
     @Test
@@ -78,7 +78,7 @@ class RibCoroutineWorkerTest {
 
         val handle = interactor.coroutineScope.bind(worker)
 
-        assertTrue(handle.isCancelled)
+        assertTrue(handle.bindJob.isCancelled)
         // JVM 디버그 모드는 스택 추적 복원을 위해 예외를 복사하므로 인스턴스가 아니라 타입·메시지로 비교한다.
         assertIs<IllegalStateException>(stopCause)
         assertEquals(error.message, stopCause?.message)

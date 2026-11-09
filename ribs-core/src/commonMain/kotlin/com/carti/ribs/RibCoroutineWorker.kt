@@ -26,8 +26,15 @@ public fun interface RibCoroutineWorker {
     public fun onStop(cause: Throwable) {}
 }
 
-/** [bind]의 결과. [onStart]가 끝나면 완료되는 Job이며, [unbind]로 Worker를 직접 멈출 수 있다. */
-public interface BindWorkerHandle : Job {
+/**
+ * [bind]의 결과. [unbind]로 Worker를 직접 멈출 수 있다.
+ *
+ * 원본은 이 핸들 자체가 `Job`이지만, kotlinx.coroutines가 `Job` 상속을 막을 예정이라 [bindJob]으로 노출한다.
+ */
+public interface BindWorkerHandle {
+    /** [RibCoroutineWorker.onStart]가 끝나면 완료된다. onStart가 실패하면 실패로, 멈추면 취소로 끝난다. */
+    public val bindJob: Job
+
     /** Worker를 멈춘다. 반환된 Job은 Worker가 완전히 멈추면 완료된다. */
     public fun unbind(): Job
 }
@@ -80,9 +87,9 @@ public fun CoroutineScope.bind(
 }
 
 private class BindWorkerHandleImpl(
-    private val bindJob: Job,
+    override val bindJob: Job,
     private val unbindJob: Job,
-) : BindWorkerHandle, Job by bindJob {
+) : BindWorkerHandle {
     override fun unbind(): Job {
         unbindJob.cancel(CancellationException("Worker was manually unbound."))
         return unbindJob
