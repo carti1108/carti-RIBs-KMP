@@ -48,8 +48,9 @@ detach할 때 (`parent.detachChild(child)`):
 | `Bundle` / `savedInstanceState` | `RibState?` (공통 상태 타입, 형태는 별도 결정) | ADR-0001 |
 | `ViewRouter<V : View, I>` | `ViewRouter<V : ViewControllable, I>` | ADR-0004 |
 | Dagger Component, `@Inject` | 수동 `Component<D : Dependency>`, 생성자 주입 | ADR-0003 |
-| `RibActivity` / `RibFragment` 진입점 | `LaunchRouter.launch(host)` | ADR-0004 |
-| (없음) | `mount()` / `unmount()`: RIB 없는 호스트에 하위 트리 장착 | 확장 API |
+| `RibActivity` / `RibFragment` 진입점 | `LaunchRouter.launch(host)` / `shutdown()` (attach 후 뷰 표시, detach 후 뷰 숨김) | ADR-0004 |
+| 루트 뷰 컨테이너(`ViewGroup`, `UIWindow`) | `ViewHost<V>` 인터페이스, 플랫폼 어댑터가 구현 | ADR-0004 |
+| (없음) | `Router.mount()` / `ViewRouter.mount(host)` → `RibMount.unmount()`: RIB 없는 호스트에 하위 트리 장착 | 확장 API |
 | `LeakDetector`, `RibRefWatcher` | 이번 범위에서 제외 | — |
 | 같은 tag 중복 attach 시 경고만 | 같은 **인스턴스** 중복 attach는 실패, 같은 tag는 허용 | 인스턴스 중복은 Interactor 이중 활성화로 이어짐 |
 | 붙지 않은 자식 detach 시에도 `dispatchDetach` 호출 | 아무 일도 하지 않음 | 비활성 Interactor의 이중 비활성화 방지 |
