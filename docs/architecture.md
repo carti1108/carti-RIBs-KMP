@@ -57,3 +57,5 @@ detach할 때 (`parent.detachChild(child)`):
 | 메인 스레드 검사 | 없음 (계약으로만) | ADR-0005 |
 | Presenter `lifecycle()` Observable, `requestScope()` | `lifecycleFlow`, 로드 구간 `coroutineScope` | ADR-0002 |
 | Presenter 중복 로드·로드 전 언로드에 가드 없음 | 실패시킴 | 로드 구간 스코프가 겹치지 않게 |
+| Rx `Worker` + `WorkerBinder` (원본에서 deprecated) | 옮기지 않음. `RibCoroutineWorker` + `CoroutineScope.bind`만 제공 | ADR-0002 |
+| `RibCoroutineWorker`의 `RibActionEmitter`(이벤트 보고) | 없음 | RIB 이벤트 버스 미도입 |
