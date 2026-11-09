@@ -54,9 +54,14 @@ public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : In
     /** 뒤로 가기를 처리했으면 true. */
     override fun handleBackPress(): Boolean = false
 
-    internal fun setRouter(router: R) {
+    /**
+     * Router 생성 시 Router가 자신을 연결한다. 제네릭은 런타임에 지워지므로 타입 일치는
+     * `Router<I>`의 선언(`I`가 이 Interactor 타입)으로 보장된다.
+     */
+    @Suppress("UNCHECKED_CAST")
+    internal fun setRouterInternal(router: Router<*>) {
         check(attachedRouter == null) { "Router is already set for ${this::class.simpleName}" }
-        attachedRouter = router
+        attachedRouter = router as R
     }
 
     internal fun dispatchAttach(savedInstanceState: RibState?) {
@@ -75,7 +80,9 @@ public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : In
         return presenter
     }
 
-    internal fun saveInstanceState(outState: MutableMap<String, Any?>) {
+    internal fun saveInstanceState(): RibState {
+        val outState = mutableMapOf<String, Any?>()
         onSaveInstanceState(outState)
+        return RibState(outState.toMap())
     }
 }
