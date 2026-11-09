@@ -22,17 +22,20 @@
 
 ## 생명주기 순서 (원본과 동일)
 
-attach할 때:
-1. 부모 Router의 `attachChild(child)`
-2. `child.dispatchAttach(savedState)`
-3. 자식 Interactor 활성화 → `didBecomeActive(savedState)`
-4. 자식 Router의 `didLoad()`
+attach할 때 (`parent.attachChild(child, tag)`):
+1. 자식을 children에 추가
+2. `child.dispatchAttach(tag로 찾은 저장 상태, tag)`
+3. 자식 Router의 `didLoad()` (처음 한 번만)
+4. 자식 Router의 `willAttach()`
+5. 자식 Interactor 활성화 → `didBecomeActive(savedState)`
 
-detach할 때:
-1. 부모 Router의 `detachChild(child)`
-2. 자식의 하위 트리를 아래쪽부터 detach
-3. 자식 Interactor의 `willResignActive()` → 활성 스코프 취소
-4. `child.dispatchDetach()`
+자식의 자식은 여기서 붙지 않는다. 자식 Interactor나 Router가 직접 `attachChild`로 붙인다.
+
+detach할 때 (`parent.detachChild(child)`):
+1. 자식을 children에서 제거 (붙어 있지 않았으면 여기서 끝)
+2. 자식 Interactor의 `willResignActive()` → 활성 스코프 취소
+3. 자식 Router의 `willDetach()`
+4. 자식의 자식들을 같은 순서로 detach (위에서 아래로)
 
 모든 생명주기 호출은 단일 스레드에서 한다([ADR-0005](adr/ADR-0005-single-thread-lifecycle.md)).
 
@@ -47,4 +50,8 @@ detach할 때:
 | Dagger Component, `@Inject` | 수동 `Component<D : Dependency>`, 생성자 주입 | ADR-0003 |
 | `RibActivity` / `RibFragment` 진입점 | `LaunchRouter.launch(host)` | ADR-0004 |
 | (없음) | `mount()` / `unmount()`: RIB 없는 호스트에 하위 트리 장착 | 확장 API |
-| `LeakDetector` | 이번 범위에서 제외 | — |
+| `LeakDetector`, `RibRefWatcher` | 이번 범위에서 제외 | — |
+| 같은 tag 중복 attach 시 경고만 | 같은 **인스턴스** 중복 attach는 실패, 같은 tag는 허용 | 인스턴스 중복은 Interactor 이중 활성화로 이어짐 |
+| 붙지 않은 자식 detach 시에도 `dispatchDetach` 호출 | 아무 일도 하지 않음 | 비활성 Interactor의 이중 비활성화 방지 |
+| RIB 이벤트 버스(`RibEvents`), breadcrumb 로그 | 아직 없음 | 필요해지면 Flow로 추가 |
+| 메인 스레드 검사 | 없음 (계약으로만) | ADR-0005 |
