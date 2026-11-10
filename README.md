@@ -13,7 +13,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 |---|---|---|
 | M0 | Gradle KMP 골격, 테스트 실행 | 완료 (JVM, JS) |
 | M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS, Android, iOS, macOS) |
-| M2 | xcframework, Swift 뷰 어댑터(ADR-0006), SwiftUI 샘플 | 진행 중: xcframework 완료 |
+| M2 | xcframework, Swift 뷰 어댑터(ADR-0006), SwiftUI 샘플 | 완료 (iOS 시뮬레이터 UI 테스트로 확인) |
 
 ## 빠른 시작
 
@@ -46,6 +46,25 @@ JDK 17 이상이 필요합니다 (Android Studio 내장 JBR 사용 가능).
 Android 타깃은 SDK 경로가 필요합니다(`local.properties`의 `sdk.dir` 또는 `ANDROID_HOME`).
 Apple 타깃은 Windows/Linux에서 건너뛰고, Mac에서 `./gradlew :ribs-core:iosSimulatorArm64Test :ribs-core:macosArm64Test`로 테스트합니다.
 Swift용 xcframework는 `./gradlew :ribs-core:assembleRIBsKMPXCFramework`로 만들고, `ribs-core/build/XCFrameworks/{debug,release}/RIBsKMP.xcframework`에 생깁니다(정적 프레임워크, Swift에서 `import RIBsKMP`).
+
+## iOS 샘플 (SwiftUI)
+
+공유 코드의 RIB 트리(Root → LoggedOut ⇄ LoggedIn)를 SwiftUI로 띄우는 샘플입니다. 구조는 ADR-0006을 따릅니다.
+
+| 위치 | 역할 |
+|---|---|
+| `samples/login-shared` | 샘플 RIB(Kotlin). 뷰 계약과 `LoginApp` 진입점. `ribs-core`를 export한 `LoginShared.xcframework`를 만든다 |
+| `swift/RIBsKMPSwiftUI` | Kotlin에 의존하지 않는 Swift 어댑터(`SwiftUIRenderable`, `RIBScreenSlot`, `RIBSlotView`) |
+| `samples/ios-login` | Tuist로 만드는 iOS 앱. 뷰 계약을 SwiftUI로 구현하고 XCUITest로 흐름을 검증한다 |
+
+앱에는 Kotlin 프레임워크를 하나만 넣을 수 있습니다. 그래서 앱 전용 Kotlin 모듈이 `ribs-core`를 export하고, Swift 어댑터는 Kotlin 타입을 모르는 채로 다운캐스트로 연결합니다.
+
+```bash
+./gradlew :samples:login-shared:assembleLoginSharedDebugXCFramework
+cd samples/ios-login && tuist generate
+```
+
+Xcode에서 `LoginSample` 스킴을 arm64 시뮬레이터로 실행하거나 테스트합니다. Swift 어댑터 테스트는 `cd swift/RIBsKMPSwiftUI && swift test`로 실행합니다.
 
 ## 문서
 
