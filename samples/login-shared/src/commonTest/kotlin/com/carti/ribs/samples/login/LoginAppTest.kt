@@ -85,14 +85,14 @@ private class FakeRootView : RootViewControllable {
     override fun hideScreen(screen: ViewControllable) { if (this.screen === screen) this.screen = null }
 }
 
-private class FakeLoggedOutView : LoggedOutViewControllable {
-    override var listener: LoggedOutViewListener? = null
+private class FakeLoggedOutView : LoggedOutPresentable {
+    override var listener: LoggedOutPresentableListener? = null
     var error: String? = null
     override fun showError(message: String?) { error = message }
 }
 
-private class FakeLoggedInView : LoggedInViewControllable {
-    override var listener: LoggedInViewListener? = null
+private class FakeLoggedInView : LoggedInPresentable {
+    override var listener: LoggedInPresentableListener? = null
     var userName: String? = null
     override fun showUserName(name: String) { userName = name }
 }
@@ -102,8 +102,8 @@ private class FakeViewFactory : LoginViewFactory {
     val loggedOut = mutableListOf<FakeLoggedOutView>()
     val loggedIn = mutableListOf<FakeLoggedInView>()
     override fun makeRootView(): RootViewControllable = root
-    override fun makeLoggedOutView(): LoggedOutViewControllable = FakeLoggedOutView().also { loggedOut += it }
-    override fun makeLoggedInView(): LoggedInViewControllable = FakeLoggedInView().also { loggedIn += it }
+    override fun makeLoggedOutView(): LoggedOutPresentable = FakeLoggedOutView().also { loggedOut += it }
+    override fun makeLoggedInView(): LoggedInPresentable = FakeLoggedInView().also { loggedIn += it }
 }
 
 private class FakeHost : ViewHost<RootViewControllable> {

@@ -4,6 +4,6 @@ import LoginShared
 @MainActor
 final class SwiftUIViewFactory: NSObject, @preconcurrency LoginViewFactory {
     func makeRootView() -> any RootViewControllable { RootScreen() }
-    func makeLoggedOutView() -> any LoggedOutViewControllable { LoggedOutScreen() }
-    func makeLoggedInView() -> any LoggedInViewControllable { LoggedInScreen() }
+    func makeLoggedOutView() -> any LoggedOutPresentable { LoggedOutScreen() }
+    func makeLoggedInView() -> any LoggedInPresentable { LoggedInScreen() }
 }

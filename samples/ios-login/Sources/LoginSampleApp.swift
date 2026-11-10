@@ -24,6 +24,8 @@ final class AppLauncher: NSObject, @preconcurrency ViewHost {
     func start() {
         guard !isStarted else { return }
         isStarted = true
+        // 공유 코드의 생명주기 호출이 메인 스레드인지 검사한다(ADR-0007).
+        RibThreadingConfig.shared.mainThreadChecker = FoundationMainThreadChecker()
         app.start(host: self)
     }
 
@@ -33,5 +35,12 @@ final class AppLauncher: NSObject, @preconcurrency ViewHost {
 
     func hide(view: any ViewControllable) {
         windowSlot.hide(anyView: view)
+    }
+}
+
+/// Foundation으로 메인 스레드 여부를 알려 주는 검사기. 어느 스레드에서 불려도 안전하다.
+final class FoundationMainThreadChecker: NSObject, MainThreadChecker {
+    func isMainThread() -> Bool {
+        Thread.isMainThread
     }
 }

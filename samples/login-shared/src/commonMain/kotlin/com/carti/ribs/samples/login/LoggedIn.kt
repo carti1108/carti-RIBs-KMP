@@ -4,7 +4,20 @@ import com.carti.ribs.Builder
 import com.carti.ribs.Dependency
 import com.carti.ribs.Interactor
 import com.carti.ribs.RibState
+import com.carti.ribs.ViewControllable
 import com.carti.ribs.ViewRouter
+
+/** 뷰 → 공유 코드: 사용자 입력. */
+interface LoggedInPresentableListener {
+    fun didTapLogout()
+}
+
+/** 공유 코드 → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). */
+interface LoggedInPresentable : ViewControllable {
+    /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
+    var listener: LoggedInPresentableListener?
+    fun showUserName(name: String)
+}
 
 interface LoggedInDependency : Dependency {
     val viewFactory: LoginViewFactory
@@ -21,19 +34,22 @@ class LoggedInBuilder(dependency: LoggedInDependency) : Builder<LoggedInDependen
     }
 }
 
-/** 화면 로직이 단순해 Presenter 없이 Interactor가 뷰 계약을 직접 다룬다(원본의 Presentable 패턴). */
+/**
+ * 화면 로직이 단순해 별도 Presenter 없이 뷰 계약을 presenter 자리에 받는다
+ * (원본의 `Interactor<P, R>`에서 P가 뷰가 구현하는 인터페이스인 형태, RIBs-iOS의 `PresentableInteractor`).
+ */
 class LoggedInInteractor(
-    private val view: LoggedInViewControllable,
+    presenter: LoggedInPresentable,
     private val userName: String,
     private val listener: LoggedInListener,
-) : Interactor<Unit, LoggedInRouter>(Unit), LoggedInViewListener {
+) : Interactor<LoggedInPresentable, LoggedInRouter>(presenter), LoggedInPresentableListener {
     override fun didBecomeActive(savedInstanceState: RibState?) {
-        view.listener = this
-        view.showUserName(userName)
+        presenter.listener = this
+        presenter.showUserName(userName)
     }
 
     override fun willResignActive() {
-        view.listener = null
+        presenter.listener = null
     }
 
     override fun didTapLogout() {
@@ -41,5 +57,5 @@ class LoggedInInteractor(
     }
 }
 
-class LoggedInRouter(view: LoggedInViewControllable, interactor: LoggedInInteractor) :
-    ViewRouter<LoggedInViewControllable, LoggedInInteractor>(view, interactor)
+class LoggedInRouter(view: LoggedInPresentable, interactor: LoggedInInteractor) :
+    ViewRouter<LoggedInPresentable, LoggedInInteractor>(view, interactor)

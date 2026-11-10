@@ -6,6 +6,13 @@ import com.carti.ribs.Dependency
 import com.carti.ribs.Interactor
 import com.carti.ribs.LaunchRouter
 import com.carti.ribs.RibState
+import com.carti.ribs.ViewControllable
+
+/** 루트 뷰 계약. 자식 RIB 화면 하나를 보여 준다. 플랫폼이 구현한다(ADR-0006). */
+interface RootViewControllable : ViewControllable {
+    fun showScreen(screen: ViewControllable)
+    fun hideScreen(screen: ViewControllable)
+}
 
 interface RootDependency : Dependency {
     val viewFactory: LoginViewFactory

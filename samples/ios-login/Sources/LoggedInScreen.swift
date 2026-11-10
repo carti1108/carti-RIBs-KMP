@@ -5,8 +5,8 @@ import SwiftUI
 /// 로그인 상태 RIB의 뷰.
 @MainActor
 @Observable
-final class LoggedInScreen: NSObject, @preconcurrency LoggedInViewControllable, SwiftUIRenderable {
-    @ObservationIgnored weak var listener: (any LoggedInViewListener)?
+final class LoggedInScreen: NSObject, @preconcurrency LoggedInPresentable, SwiftUIRenderable {
+    @ObservationIgnored weak var listener: (any LoggedInPresentableListener)?
     private(set) var userName = ""
 
     func showUserName(name: String) {
