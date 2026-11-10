@@ -5,3 +5,10 @@ build/
 local.properties
 *.iml
 .DS_Store
+
+# Swift / Xcode (Tuist가 만드는 프로젝트는 커밋하지 않는다)
+.build/
+*.xcodeproj/
+*.xcworkspace/
+Derived/
+.swiftpm/
