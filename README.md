@@ -12,7 +12,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | 단계 | 내용 | 상태 |
 |---|---|---|
 | M0 | Gradle KMP 골격, 테스트 실행 | 완료 (JVM, JS) |
-| M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS, Android). iOS/macOS는 Mac에서 확인 필요 |
+| M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS, Android, iOS, macOS) |
 | M2 | xcframework, Flow → Swift 브리지, SwiftUI 샘플 | 예정 (Mac 필요) |
 
 ## 빠른 시작
