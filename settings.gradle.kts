@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 
 include(":ribs-core")
 include(":samples:login-shared")
+include(":samples:android-login")
