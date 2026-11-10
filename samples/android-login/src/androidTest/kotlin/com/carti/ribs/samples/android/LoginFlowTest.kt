@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
@@ -77,6 +78,23 @@ class LoginFlowTest {
         compose.onNodeWithTag(Tags.ERROR_LABEL).assertTextEquals("로그인에 실패했습니다")
         compose.onNodeWithTag(Tags.LOADING_INDICATOR).assertDoesNotExist()
         compose.onNodeWithTag(Tags.LOGIN_BUTTON).assertIsEnabled()
+    }
+
+    @Test
+    fun todoDetailTogglesDoneAndSystemBackReturnsToList() {
+        compose.onNodeWithTag(Tags.NAME_FIELD).performTextInput("carti")
+        compose.onNodeWithTag(Tags.LOGIN_BUTTON).performClick()
+        waitForTag(Tags.todoRow(1))
+
+        compose.onNodeWithTag(Tags.todoRow(1)).performClick()
+        compose.onNodeWithTag(Tags.DETAIL_TITLE).assertTextEquals("우유 사기")
+        compose.onNodeWithTag(Tags.TOGGLE_DONE_BUTTON).performClick()
+
+        Espresso.pressBack()
+
+        waitForTag(Tags.todoRow(1))
+        compose.onNodeWithTag(Tags.DETAIL_TITLE).assertDoesNotExist()
+        compose.onNodeWithTag(Tags.todoRow(1)).assertTextEquals("✓ 우유 사기")
     }
 
     private fun waitForTag(tag: String) {

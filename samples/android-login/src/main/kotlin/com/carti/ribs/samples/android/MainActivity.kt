@@ -1,20 +1,22 @@
 package com.carti.ribs.samples.android
 
-import com.carti.ribs.compose.ComposeRenderable
-import com.carti.ribs.compose.ComposeScreenSlot
-import com.carti.ribs.compose.RibSlot
-
 import android.os.Bundle
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.core.os.bundleOf
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.carti.ribs.RibThreadingConfig
 import com.carti.ribs.ViewHost
+import com.carti.ribs.compose.ComposeScreenSlot
+import com.carti.ribs.compose.RibBackPressedCallback
+import com.carti.ribs.compose.RibSlot
 import com.carti.ribs.samples.login.DelayedAuthService
 import com.carti.ribs.samples.login.LoginApp
 import com.carti.ribs.samples.login.RootViewControllable
@@ -23,15 +25,22 @@ import com.carti.ribs.samples.login.RootViewControllable
  * RIB 트리를 소유하고 루트 뷰를 창 슬롯에 붙이는 `ViewHost`. iOS 샘플의 `AppLauncher`에 해당한다.
  * ViewModel에 두어 화면 회전처럼 Activity가 다시 만들어져도 트리를 유지하고, 화면을 완전히 떠날 때 내린다.
  */
-class LoginViewModel(loginDelayMillis: Long) : ViewModel(), ViewHost<RootViewControllable> {
+class LoginViewModel(
+    loginDelayMillis: Long,
+    savedStateHandle: SavedStateHandle,
+) : ViewModel(), ViewHost<RootViewControllable> {
     val windowSlot = ComposeScreenSlot()
     private val app = LoginApp(ComposeViewFactory(), DelayedAuthService(loginDelayMillis))
 
     init {
         // 공유 코드의 생명주기 호출이 메인 스레드인지 검사한다(ADR-0007).
         RibThreadingConfig.mainThreadChecker = LooperMainThreadChecker
-        app.start(this)
+        // 프로세스가 종료됐다 다시 시작되면 저장해 둔 RibState 문자열로 트리를 되살린다(ADR-0008).
+        app.start(this, savedStateHandle.get<Bundle>(KEY_RIB_STATE)?.getString(KEY_RIB_STATE))
+        savedStateHandle.setSavedStateProvider(KEY_RIB_STATE) { bundleOf(KEY_RIB_STATE to app.saveState()) }
     }
+
+    fun handleBackPress(): Boolean = app.handleBackPress()
 
     override fun show(view: RootViewControllable) = windowSlot.show(view)
 
@@ -39,6 +48,10 @@ class LoginViewModel(loginDelayMillis: Long) : ViewModel(), ViewHost<RootViewCon
 
     override fun onCleared() {
         app.stop()
+    }
+
+    private companion object {
+        const val KEY_RIB_STATE = "ribState"
     }
 }
 
@@ -55,13 +68,17 @@ class MainActivity : ComponentActivity() {
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T =
-                    LoginViewModel(delay) as T
+                    LoginViewModel(delay, extras.createSavedStateHandle()) as T
             },
         )[LoginViewModel::class.java]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(
+            this,
+            RibBackPressedCallback(onBackPressedDispatcher, viewModel::handleBackPress),
+        )
         setContent {
             MaterialTheme {
                 Surface { RibSlot(viewModel.windowSlot) }
