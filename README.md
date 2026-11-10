@@ -15,7 +15,9 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS, Android, iOS, macOS) |
 | M2 | xcframework, Swift 뷰 어댑터(ADR-0006), SwiftUI 샘플 | 완료 (iOS 시뮬레이터 UI 테스트로 확인) |
 | M3 | `ViewPresenter`·`EmptyPresenter`, 메인 스레드 검사(ADR-0007), 샘플 명명 정리 | 완료 |
+| M4 | Android Compose 샘플, `ribs-compose` 어댑터 모듈, 시스템 뒤로 가기 | 완료 |
 | M5 | 비동기 로그인 샘플(로딩·실패·취소, `AuthService`) | 완료 |
+| M6 | 할 일 목록·상세 스택, 결과 전달, 세션 Worker, `RibState` 저장·복원(ADR-0008), `newRib` 스캐폴딩 | 완료 |
 | - | Android(Compose) 샘플, iOS와 같은 흐름 | 완료 (에뮬레이터 UI 테스트로 확인) |
 
 ## 빠른 시작
@@ -73,7 +75,9 @@ Xcode에서 `LoginSample` 스킴을 arm64 시뮬레이터로 실행하거나 테
 
 iOS 샘플과 같은 `login-shared` 트리와 뷰 계약을 Compose로 구현한 앱입니다(`samples/android-login`).
 
-- `ComposeRenderable`·`ComposeScreenSlot`·`RibSlot`: iOS의 `SwiftUIRenderable`·`RIBScreenSlot`·`RIBSlotView`에 해당
+- `ribs-compose` 모듈의 `ComposeRenderable`·`ComposeScreenSlot`·`RibSlot`: iOS의 `SwiftUIRenderable`·`RIBScreenSlot`·`RIBSlotView`에 해당
+- `RibBackPressedCallback`: 시스템 뒤로 가기를 루트 `Router.handleBackPress()`로 보내고, 트리가 처리하지 않으면 시스템 기본 동작을 따른다
+- 프로세스가 종료됐다 다시 시작되면 `SavedStateHandle`에 넣어 둔 `RibState` 문자열로 트리를 되살린다(ADR-0008). iOS는 RIBs-iOS처럼 복원을 연결하지 않는다
 - `LoginViewModel`이 트리를 소유하는 `ViewHost`라서 화면 회전에도 트리가 유지되고, 화면을 떠날 때 `shutdown`한다
 - UI 테스트(`LoginFlowTest`)는 iOS `LoginFlowUITests`와 같은 세 흐름을 확인한다
 
@@ -81,6 +85,25 @@ iOS 샘플과 같은 `login-shared` 트리와 뷰 계약을 Compose로 구현한
 ./gradlew :samples:android-login:installDebug
 ./gradlew :samples:android-login:connectedDebugAndroidTest   # 에뮬레이터나 기기 필요
 ```
+
+## 샘플 시나리오
+
+| 시나리오 | 다루는 것 |
+|---|---|
+| 로그인(LoggedOut) | Presenter 입력 검증, 비동기 요청과 취소, 중복 요청 무시 |
+| 할 일 목록 → 상세 | 화면 스택, Builder 런타임 인자, 뒤로 가기(자식부터 처리) |
+| 상세에서 완료 표시 | 공유 `TodoStore`(Component `shared`)를 통한 결과 전달, Flow 구독 |
+| 세션 시간 표시 | `RibCoroutineWorker`, 로그아웃 시 정지, Worker에서 메인으로 돌아와 뷰 갱신 |
+| 상태 저장·복원 | 로그인 사용자, 열린 상세, 완료 항목을 `RibState`로 저장 |
+
+## RIB 만들기 (스캐폴딩)
+
+```bash
+./gradlew newRib -Pname=Profile -Ppackage=com.example.profile -PkotlinDir=shared/src/commonMain/kotlin \
+  -PswiftDir=ios/Sources -PswiftModule=Shared -PcomposeDir=android/src/main/kotlin -PcomposePackage=com.example.android
+```
+
+공유 코드 RIB(뷰 계약, Dependency, Listener, Builder, Interactor, Router), 테스트, SwiftUI·Compose 화면 뼈대를 만듭니다. 이미 있는 파일은 덮어쓰지 않습니다. Claude Code에서는 `create-rib` 스킬(`.claude/skills/create-rib`)이 이 태스크를 부른 뒤 요구사항에 맞게 내용을 채웁니다.
 
 ## 문서
 
