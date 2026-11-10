@@ -14,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
@@ -90,7 +89,9 @@ class LoginFlowTest {
         compose.onNodeWithTag(Tags.DETAIL_TITLE).assertTextEquals("우유 사기")
         compose.onNodeWithTag(Tags.TOGGLE_DONE_BUTTON).performClick()
 
-        Espresso.pressBack()
+        // 시스템 뒤로 가기와 같은 경로(OnBackPressedDispatcher → RibBackPressedCallback)를 탄다.
+        // Espresso.pressBack()은 헤드리스 에뮬레이터에서 창 포커스를 기다리다 실패할 수 있어 쓰지 않는다.
+        scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
 
         waitForTag(Tags.todoRow(1))
         compose.onNodeWithTag(Tags.DETAIL_TITLE).assertDoesNotExist()
@@ -104,7 +105,8 @@ class LoginFlowTest {
     }
 
     private companion object {
-        const val LOGIN_DELAY_MILLIS = 1_000L
-        const val TIMEOUT_MILLIS = 5_000L
+        /** 느린 에뮬레이터에서도 잠깐 보이는 로딩 상태를 확인할 수 있게 응답을 늦춘다. */
+        const val LOGIN_DELAY_MILLIS = 3_000L
+        const val TIMEOUT_MILLIS = 8_000L
     }
 }
