@@ -13,7 +13,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 |---|---|---|
 | M0 | Gradle KMP 골격, 테스트 실행 | 완료 (JVM, JS) |
 | M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS, Android, iOS, macOS) |
-| M2 | xcframework, Flow → Swift 브리지, SwiftUI 샘플 | 예정 (Mac 필요) |
+| M2 | xcframework, Swift 뷰 어댑터(ADR-0006), SwiftUI 샘플 | 진행 중: xcframework 완료 |
 
 ## 빠른 시작
 
@@ -45,6 +45,7 @@ JDK 17 이상이 필요합니다 (Android Studio 내장 JBR 사용 가능).
 
 Android 타깃은 SDK 경로가 필요합니다(`local.properties`의 `sdk.dir` 또는 `ANDROID_HOME`).
 Apple 타깃은 Windows/Linux에서 건너뛰고, Mac에서 `./gradlew :ribs-core:iosSimulatorArm64Test :ribs-core:macosArm64Test`로 테스트합니다.
+Swift용 xcframework는 `./gradlew :ribs-core:assembleRibsCoreXCFramework`로 만들고, `ribs-core/build/XCFrameworks/{debug,release}/RibsCore.xcframework`에 생깁니다(정적 프레임워크, Swift에서 `import RibsCore`).
 
 ## 문서
 

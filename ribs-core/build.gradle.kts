@@ -1,3 +1,8 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+
+/** Swift에서 `import RibsCore`로 쓰는 프레임워크 이름. */
+val APPLE_FRAMEWORK_NAME = "RibsCore"
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kmp.library)
@@ -21,9 +26,15 @@ kotlin {
     js {
         nodejs()
     }
-    iosArm64()
-    iosSimulatorArm64()
-    macosArm64()
+    // Swift 연동용 xcframework (ADR-0006). `assembleRibsCoreXCFramework`로 만든다.
+    val xcFramework = XCFramework(APPLE_FRAMEWORK_NAME)
+    listOf(iosArm64(), iosSimulatorArm64(), macosArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = APPLE_FRAMEWORK_NAME
+            isStatic = true
+            xcFramework.add(this)
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
