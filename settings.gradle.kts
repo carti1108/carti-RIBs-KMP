@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 }
 
 include(":ribs-core")
+include(":samples:login-shared")
