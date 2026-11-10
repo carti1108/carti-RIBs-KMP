@@ -13,6 +13,20 @@
 | **Builder** | Component를 만들고 Router·Interactor·Presenter를 조립한다. 런타임 파라미터는 `build(...)`로 받는다. | 상태를 갖지 않는다. |
 | **Component / Dependency** | Dependency는 부모가 제공해야 하는 것, Component는 이 RIB이 만들어 자식에게 넘기는 것이다([ADR-0003](adr/ADR-0003-manual-component-di.md)). | 의존성을 필요 이상으로 위 RIB에서 만들지 않는다. |
 
+## 뷰 계약 명명
+
+플랫폼이 구현하는 뷰 계약은 해당 RIB 파일에 두고, RIBs-iOS 규약으로 이름 붙인다([ADR-0006](adr/ADR-0006-swift-bridge-via-view-interfaces.md)).
+
+| 방향 | 이름 | 예 |
+|---|---|---|
+| 공유 코드 → 뷰 | `XxxPresentable : ViewControllable` | `LoggedOutPresentable.showError(message)` |
+| 뷰 → 공유 코드 | `XxxPresentableListener` | `LoggedOutPresentableListener.didTapLogin(rawName)` |
+| 루트처럼 자식 화면만 담는 뷰 | `XxxViewControllable` | `RootViewControllable.showScreen(screen)` |
+
+- Android 원본은 Interactor 안에 `interface XxxPresenter`를 두고 View가 구현한다. 이 프레임워크에서는 `Presenter`가 생명주기를 가진 클래스 이름이라서, 같은 이름의 뷰 계약과 헷갈리지 않게 iOS 규약을 쓴다.
+- 플랫폼 뷰는 `listener`를 약한 참조로 둔다. 공유 코드와 플랫폼 객체 사이의 순환 참조는 Kotlin/Native GC가 회수하지 못한다.
+- 뷰 계약은 메인 스레드에서만 부른다. 프레임워크가 가로챌 수 없는 호출 지점에서는 `checkMainThread()`를 쓴다([ADR-0007](adr/ADR-0007-injected-main-thread-check.md)).
+
 ## 라우팅 규약
 
 - 모든 `routeToX()`에는 짝이 되는 `routeAwayFromX()`가 있다. 둘은 같은 소유자(부모 Interactor)가 호출한다.
