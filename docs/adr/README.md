@@ -31,3 +31,4 @@
 | [ADR-0003](ADR-0003-manual-component-di.md) | 수동 Component/Dependency로 DI한다 | 채택 | 2026-11-09 |
 | [ADR-0004](ADR-0004-opaque-view-controllable.md) | 공유 코드는 불투명한 ViewControllable만 안다 | 채택 | 2026-11-09 |
 | [ADR-0005](ADR-0005-single-thread-lifecycle.md) | 생명주기 호출은 단일 스레드로 제한한다 | 채택 | 2026-11-09 |
+| [ADR-0006](ADR-0006-swift-bridge-via-view-interfaces.md) | Swift 연동은 뷰 인터페이스 호출로 하고 Flow 브리지 도구를 쓰지 않는다 | 채택 | 2026-11-10 |
