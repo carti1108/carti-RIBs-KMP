@@ -1,5 +1,9 @@
 package com.carti.ribs.samples.android
 
+import com.carti.ribs.compose.ComposeRenderable
+import com.carti.ribs.compose.ComposeScreenSlot
+import com.carti.ribs.compose.RibSlot
+
 import android.os.Bundle
 import android.os.Looper
 import androidx.activity.ComponentActivity

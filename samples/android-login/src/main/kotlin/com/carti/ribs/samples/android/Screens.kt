@@ -1,5 +1,9 @@
 package com.carti.ribs.samples.android
 
+import com.carti.ribs.compose.ComposeRenderable
+import com.carti.ribs.compose.ComposeScreenSlot
+import com.carti.ribs.compose.RibSlot
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize

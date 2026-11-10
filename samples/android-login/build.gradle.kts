@@ -23,6 +23,7 @@ android {
 
 dependencies {
     implementation(project(":samples:login-shared"))
+    implementation(project(":ribs-compose"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.activity.compose)
