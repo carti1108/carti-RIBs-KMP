@@ -16,11 +16,13 @@ interface RootViewControllable : ViewControllable {
 
 interface RootDependency : Dependency {
     val viewFactory: LoginViewFactory
+    val authService: AuthService
 }
 
 class RootComponent(dependency: RootDependency) :
     Component<RootDependency>(dependency), LoggedOutDependency, LoggedInDependency {
     override val viewFactory: LoginViewFactory get() = dependency.viewFactory
+    override val authService: AuthService get() = dependency.authService
 }
 
 class RootBuilder(dependency: RootDependency) : Builder<RootDependency>(dependency) {
