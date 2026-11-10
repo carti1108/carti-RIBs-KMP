@@ -16,6 +16,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | M2 | xcframework, Swift 뷰 어댑터(ADR-0006), SwiftUI 샘플 | 완료 (iOS 시뮬레이터 UI 테스트로 확인) |
 | M3 | `ViewPresenter`·`EmptyPresenter`, 메인 스레드 검사(ADR-0007), 샘플 명명 정리 | 완료 |
 | M5 | 비동기 로그인 샘플(로딩·실패·취소, `AuthService`) | 완료 |
+| - | Android(Compose) 샘플, iOS와 같은 흐름 | 완료 (에뮬레이터 UI 테스트로 확인) |
 
 ## 빠른 시작
 
@@ -67,6 +68,19 @@ cd samples/ios-login && tuist generate
 ```
 
 Xcode에서 `LoginSample` 스킴을 arm64 시뮬레이터로 실행하거나 테스트합니다. 로그인은 약 0.8초 지연되고, 이름을 `fail`로 넣으면 실패 흐름을 볼 수 있습니다. Swift 어댑터 테스트는 `cd swift/RIBsKMPSwiftUI && swift test`로 실행합니다.
+
+## Android 샘플 (Compose)
+
+iOS 샘플과 같은 `login-shared` 트리와 뷰 계약을 Compose로 구현한 앱입니다(`samples/android-login`).
+
+- `ComposeRenderable`·`ComposeScreenSlot`·`RibSlot`: iOS의 `SwiftUIRenderable`·`RIBScreenSlot`·`RIBSlotView`에 해당
+- `LoginViewModel`이 트리를 소유하는 `ViewHost`라서 화면 회전에도 트리가 유지되고, 화면을 떠날 때 `shutdown`한다
+- UI 테스트(`LoginFlowTest`)는 iOS `LoginFlowUITests`와 같은 세 흐름을 확인한다
+
+```bash
+./gradlew :samples:android-login:installDebug
+./gradlew :samples:android-login:connectedDebugAndroidTest   # 에뮬레이터나 기기 필요
+```
 
 ## 문서
 
