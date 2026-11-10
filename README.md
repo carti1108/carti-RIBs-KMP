@@ -15,6 +15,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | M1 | Interactor, Router, Presenter, ViewRouter, Builder/Component, Worker, LaunchRouter, mount/unmount | 완료 (JVM, JS, Android, iOS, macOS) |
 | M2 | xcframework, Swift 뷰 어댑터(ADR-0006), SwiftUI 샘플 | 완료 (iOS 시뮬레이터 UI 테스트로 확인) |
 | M3 | `ViewPresenter`·`EmptyPresenter`, 메인 스레드 검사(ADR-0007), 샘플 명명 정리 | 완료 |
+| M5 | 비동기 로그인 샘플(로딩·실패·취소, `AuthService`) | 완료 |
 
 ## 빠른 시작
 
@@ -65,7 +66,7 @@ Swift용 xcframework는 `./gradlew :ribs-core:assembleRIBsKMPXCFramework`로 만
 cd samples/ios-login && tuist generate
 ```
 
-Xcode에서 `LoginSample` 스킴을 arm64 시뮬레이터로 실행하거나 테스트합니다. Swift 어댑터 테스트는 `cd swift/RIBsKMPSwiftUI && swift test`로 실행합니다.
+Xcode에서 `LoginSample` 스킴을 arm64 시뮬레이터로 실행하거나 테스트합니다. 로그인은 약 0.8초 지연되고, 이름을 `fail`로 넣으면 실패 흐름을 볼 수 있습니다. Swift 어댑터 테스트는 `cd swift/RIBsKMPSwiftUI && swift test`로 실행합니다.
 
 ## 문서
 
