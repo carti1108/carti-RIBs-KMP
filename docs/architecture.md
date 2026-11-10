@@ -55,7 +55,7 @@ detach할 때 (`parent.detachChild(child)`):
 | 같은 tag 중복 attach 시 경고만 | 같은 **인스턴스** 중복 attach는 실패, 같은 tag는 허용 | 인스턴스 중복은 Interactor 이중 활성화로 이어짐 |
 | 붙지 않은 자식 detach 시에도 `dispatchDetach` 호출 | 아무 일도 하지 않음 | 비활성 Interactor의 이중 비활성화 방지 |
 | RIB 이벤트 버스(`RibEvents`), breadcrumb 로그 | 아직 없음 | 필요해지면 Flow로 추가 |
-| 메인 스레드 검사 | 없음 (계약으로만) | ADR-0005 |
+| 메인 스레드 검사 | 플랫폼이 주입한 `MainThreadChecker`로 생명주기 진입점에서 검사(기본 꺼짐), 뷰 호출 전에는 `checkMainThread()` | [ADR-0007](adr/ADR-0007-injected-main-thread-check.md) |
 | Presenter `lifecycle()` Observable, `requestScope()` | `lifecycleFlow`, 로드 구간 `coroutineScope` | ADR-0002 |
 | Presenter 중복 로드·로드 전 언로드에 가드 없음 | 실패시킴 | 로드 구간 스코프가 겹치지 않게 |
 | Rx `Worker` + `WorkerBinder` (원본에서 deprecated) | 옮기지 않음. `RibCoroutineWorker` + `CoroutineScope.bind`만 제공 | ADR-0002 |

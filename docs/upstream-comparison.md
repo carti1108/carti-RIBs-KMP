@@ -19,8 +19,8 @@
 | `Bundle.kt` | 🔶 | `RibState.kt` | 읽기 전용 Map 래퍼. 직렬화 미정 |
 | `RibCoroutineWorker.kt` | ✅ | `RibCoroutineWorker.kt` | `onStart(scope)`, `onStop(cause)`, `bind`, `BindWorkerHandle.unbind()`. 원본 `BindWorkerHandle`은 `Job`을 상속하지만 kotlinx.coroutines가 `Job` 상속을 오류로 바꿀 예정이라 `bindJob` 프로퍼티로 노출. `asWorker`/`asRibCoroutineWorker` 변환은 Rx Worker가 없어 생략 |
 | `Worker.kt`, `WorkerBinder.kt`, `WorkerUnbinder.kt`, `WorkerScopeProvider.kt`, `lifecycle/WorkerEvent.kt` | ⛔ | — | 원본에서 deprecated, Rx 기반 |
-| `BasicInteractor.kt` | ⏳ | — | presenter 없는 Interactor 편의 클래스. 지금은 `Interactor<Unit, R>`로 대체 가능 |
-| `EmptyPresenter.kt` | ⏳ | — | 빈 Presenter. 추가 비용 작음 |
+| `BasicInteractor.kt` | ⛔ | — | 필드 주입 없이 생성자로 presenter를 받는 Interactor. 우리 `Interactor`가 이미 생성자 주입만 하므로 같은 역할의 클래스가 둘이 된다 |
+| `EmptyPresenter.kt` | ✅ | `ViewPresenter.kt` 안 | 아무 일도 하지 않는 Presenter |
 | `BasicRouter.kt` | ⏳ | — | 원본에서 deprecated 표시된 편의 클래스. 필요성 낮음 |
 | `InteractorBaseComponent.kt`, `InteractorComponent.kt`, `InteractorModule.kt`, `InteractorAndViewModule.kt` | ⛔ | — | Dagger 전용(ADR-0003) |
 | `Rib.kt`, `RibBuilder.kt`, `RibInteractor.kt` | ⛔ | — | Dagger/어노테이션 기반 코드 생성 보조 |
@@ -45,7 +45,7 @@
 | `ViewRouter.kt` | 🔶 | `ViewRouter.kt` | `V : View` → `V : ViewControllable` |
 | `RibActivity.kt` | 🔶 | `LaunchRouter.kt` + `RibMount.kt` | attach 후 뷰 표시, detach 후 뷰 숨김. 루트 컨테이너는 `ViewHost<V>` |
 | `ViewBuilder.kt` | ⏳ | — | 뷰를 만드는 Builder. 플랫폼 어댑터 단계에서 결정 |
-| `ViewPresenter.kt` | ⏳ | — | 뷰를 들고 있는 Presenter |
+| `ViewPresenter.kt` | 🔶 | `ViewPresenter.kt` | `V : View` → `V : ViewControllable`(ADR-0004) |
 | `BasicViewRouter.kt` | ⏳ | — | `BasicRouter`의 뷰 버전 |
 | `PredictiveBackHandler.kt` | ⏳ | — | 네비게이션 이벤트 브리지 단계 |
 | `ActivityContext.kt`, `ActivityStarter.kt`, `IntentCreator*.kt`, `IntentFactory.kt`, `RxActivityEvents.kt`, `RibDebugOverlay.kt`, `XRay.kt` | ⛔ | — | Android 전용 |
