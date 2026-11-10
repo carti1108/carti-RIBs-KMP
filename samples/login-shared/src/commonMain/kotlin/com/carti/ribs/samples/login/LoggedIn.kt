@@ -5,6 +5,7 @@ import com.carti.ribs.Component
 import com.carti.ribs.Dependency
 import com.carti.ribs.Interactor
 import com.carti.ribs.RibCoroutineWorker
+import com.carti.ribs.RibDispatchers
 import com.carti.ribs.RibState
 import com.carti.ribs.ViewControllable
 import com.carti.ribs.ViewRouter
@@ -13,6 +14,7 @@ import com.carti.ribs.checkMainThread
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** 뷰 → 공유 코드: 사용자 입력. */
 interface LoggedInPresentableListener {
@@ -138,7 +140,10 @@ class LoggedInRouter(
     }
 }
 
-/** 로그인한 동안 1초마다 세션 시간을 뷰에 알린다. Interactor가 비활성화되면 함께 멈춘다. */
+/**
+ * 로그인한 동안 1초마다 세션 시간을 뷰에 알린다. Interactor가 비활성화되면 함께 멈춘다.
+ * `bind`는 원본처럼 Worker를 [RibDispatchers.Default]에서 돌리므로, 뷰 호출은 메인 디스패처로 돌아와서 한다(ADR-0007).
+ */
 class SessionTimerWorker(
     private val presenter: LoggedInPresentable,
     private val tickMillis: Long = TICK_MILLIS,
@@ -147,8 +152,11 @@ class SessionTimerWorker(
         scope.launch {
             var seconds = 0L
             while (true) {
-                checkMainThread("SessionTimerWorker.showSessionSeconds")
-                presenter.showSessionSeconds(seconds)
+                val current = seconds
+                withContext(RibDispatchers.Main) {
+                    checkMainThread("SessionTimerWorker.showSessionSeconds")
+                    presenter.showSessionSeconds(current)
+                }
                 delay(tickMillis)
                 seconds++
             }

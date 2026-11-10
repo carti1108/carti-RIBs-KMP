@@ -26,6 +26,7 @@
 - Android 원본은 Interactor 안에 `interface XxxPresenter`를 두고 View가 구현한다. 이 프레임워크에서는 `Presenter`가 생명주기를 가진 클래스 이름이라서, 같은 이름의 뷰 계약과 헷갈리지 않게 iOS 규약을 쓴다.
 - 플랫폼 뷰는 `listener`를 약한 참조로 둔다. 공유 코드와 플랫폼 객체 사이의 순환 참조는 Kotlin/Native GC가 회수하지 못한다.
 - 뷰 계약은 메인 스레드에서만 부른다. 프레임워크가 가로챌 수 없는 호출 지점에서는 `checkMainThread()`를 쓴다([ADR-0007](adr/ADR-0007-injected-main-thread-check.md)).
+- `bind`로 붙인 Worker는 원본처럼 `RibDispatchers.Default`에서 돈다. Worker에서 뷰를 갱신할 때는 `withContext(RibDispatchers.Main)`으로 돌아온다. Interactor의 `coroutineScope`는 이미 메인이다.
 
 ## 라우팅 규약
 
