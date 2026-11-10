@@ -38,7 +38,8 @@ final class AppLauncher: NSObject, @preconcurrency ViewHost {
         isStarted = true
         // 공유 코드의 생명주기 호출이 메인 스레드인지 검사한다(ADR-0007).
         RibThreadingConfig.shared.mainThreadChecker = FoundationMainThreadChecker()
-        app.start(host: self)
+        // RIBs-iOS처럼 iOS는 상태 복원을 연결하지 않는다(ADR-0008).
+        app.start(host: self, savedState: nil)
     }
 
     func show(view: any ViewControllable) {

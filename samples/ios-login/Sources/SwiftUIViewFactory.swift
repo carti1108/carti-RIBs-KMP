@@ -6,4 +6,6 @@ final class SwiftUIViewFactory: NSObject, @preconcurrency LoginViewFactory {
     func makeRootView() -> any RootViewControllable { RootScreen() }
     func makeLoggedOutView() -> any LoggedOutPresentable { LoggedOutScreen() }
     func makeLoggedInView() -> any LoggedInPresentable { LoggedInScreen() }
+    func makeTodoListView() -> any TodoListPresentable { TodoListScreen() }
+    func makeTodoDetailView() -> any TodoDetailPresentable { TodoDetailScreen() }
 }

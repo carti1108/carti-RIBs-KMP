@@ -58,4 +58,24 @@ final class LoginFlowUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["loadingIndicator"].exists)
         XCTAssertTrue(app.buttons["loginButton"].isEnabled)
     }
+
+    @MainActor
+    func testTodoDetailTogglesDoneAndBackReturnsToList() {
+        let field = app.textFields["nameField"]
+        XCTAssertTrue(field.waitForExistence(timeout: timeout))
+        field.tap()
+        field.typeText("carti")
+        app.buttons["loginButton"].tap()
+
+        let row = app.buttons["todoRow-1"]
+        XCTAssertTrue(row.waitForExistence(timeout: timeout + Double(loginDelayMillis) / 1000))
+        row.tap()
+        XCTAssertEqual(app.staticTexts["detailTitle"].label, "우유 사기")
+        app.buttons["toggleDoneButton"].tap()
+        app.buttons["backButton"].tap()
+
+        XCTAssertTrue(row.waitForExistence(timeout: timeout))
+        XCTAssertEqual(row.label, "✓ 우유 사기")
+        XCTAssertFalse(app.staticTexts["detailTitle"].exists)
+    }
 }
