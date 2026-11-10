@@ -45,7 +45,7 @@ JDK 17 이상이 필요합니다 (Android Studio 내장 JBR 사용 가능).
 
 Android 타깃은 SDK 경로가 필요합니다(`local.properties`의 `sdk.dir` 또는 `ANDROID_HOME`).
 Apple 타깃은 Windows/Linux에서 건너뛰고, Mac에서 `./gradlew :ribs-core:iosSimulatorArm64Test :ribs-core:macosArm64Test`로 테스트합니다.
-Swift용 xcframework는 `./gradlew :ribs-core:assembleRibsCoreXCFramework`로 만들고, `ribs-core/build/XCFrameworks/{debug,release}/RibsCore.xcframework`에 생깁니다(정적 프레임워크, Swift에서 `import RibsCore`).
+Swift용 xcframework는 `./gradlew :ribs-core:assembleRIBsKMPXCFramework`로 만들고, `ribs-core/build/XCFrameworks/{debug,release}/RIBsKMP.xcframework`에 생깁니다(정적 프레임워크, Swift에서 `import RIBsKMP`).
 
 ## 문서
 
