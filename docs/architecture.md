@@ -59,7 +59,7 @@ detach할 때 (`parent.detachChild(child)`):
 |---|---|---|
 | `lifecycle(): Observable<InteractorEvent>` | `lifecycle: SharedFlow<InteractorEvent>` | [ADR-0002](adr/ADR-0002-coroutines-instead-of-rx.md) |
 | AutoDispose `ScopeProvider` / `requestScope()` | 활성 구간 `coroutineScope` 취소 | ADR-0002 |
-| `Bundle` / `savedInstanceState` | `RibState?` (공통 상태 타입, 형태는 별도 결정) | ADR-0001 |
+| `Bundle` / `savedInstanceState` | `RibState?`. 값은 String·Long·Double·Boolean·List·RibState만, `encodeToString()`으로 문자열 하나로 저장. iOS는 복원을 연결하지 않음 | [ADR-0008](adr/ADR-0008-ribstate-string-encoding.md) |
 | `ViewRouter<V : View, I>` | `ViewRouter<V : ViewControllable, I>` | ADR-0004 |
 | Dagger Component, `@Inject` | 수동 `Component<D : Dependency>`, 생성자 주입 | ADR-0003 |
 | `RibActivity` / `RibFragment` 진입점 | `LaunchRouter.launch(host)` / `shutdown()` (attach 후 뷰 표시, detach 후 뷰 숨김) | ADR-0004 |
