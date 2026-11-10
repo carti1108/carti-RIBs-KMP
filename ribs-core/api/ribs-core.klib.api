@@ -28,6 +28,10 @@ final enum class com.carti.ribs/PresenterEvent : kotlin/Enum<com.carti.ribs/Pres
     final fun values(): kotlin/Array<com.carti.ribs/PresenterEvent> // com.carti.ribs/PresenterEvent.values|values#static(){}[0]
 }
 
+abstract fun interface com.carti.ribs/MainThreadChecker { // com.carti.ribs/MainThreadChecker|null[0]
+    abstract fun isMainThread(): kotlin/Boolean // com.carti.ribs/MainThreadChecker.isMainThread|isMainThread(){}[0]
+}
+
 abstract fun interface com.carti.ribs/RibCoroutineWorker { // com.carti.ribs/RibCoroutineWorker|null[0]
     abstract suspend fun onStart(kotlinx.coroutines/CoroutineScope) // com.carti.ribs/RibCoroutineWorker.onStart|onStart(kotlinx.coroutines.CoroutineScope){}[0]
     open fun onStop(kotlin/Throwable) // com.carti.ribs/RibCoroutineWorker.onStop|onStop(kotlin.Throwable){}[0]
@@ -119,6 +123,13 @@ abstract class <#A: com.carti.ribs/ViewControllable, #B: com.carti.ribs/Interact
         final fun <get-view>(): #A // com.carti.ribs/ViewRouter.view.<get-view>|<get-view>(){}[0]
 }
 
+abstract class <#A: com.carti.ribs/ViewControllable> com.carti.ribs/ViewPresenter : com.carti.ribs/Presenter { // com.carti.ribs/ViewPresenter|null[0]
+    constructor <init>(#A) // com.carti.ribs/ViewPresenter.<init>|<init>(1:0){}[0]
+
+    final val view // com.carti.ribs/ViewPresenter.view|{}view[0]
+        final fun <get-view>(): #A // com.carti.ribs/ViewPresenter.view.<get-view>|<get-view>(){}[0]
+}
+
 abstract class <#A: kotlin/Any?, #B: com.carti.ribs/Router<*>> com.carti.ribs/Interactor : com.carti.ribs/InteractorType { // com.carti.ribs/Interactor|null[0]
     constructor <init>(#A) // com.carti.ribs/Interactor.<init>|<init>(1:0){}[0]
 
@@ -193,6 +204,10 @@ open class <#A: com.carti.ribs/Dependency> com.carti.ribs/Component { // com.car
     final fun <#A1: kotlin/Any?> shared(kotlin/Function0<#A1>): kotlin/Lazy<#A1> // com.carti.ribs/Component.shared|shared(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
 }
 
+open class com.carti.ribs/EmptyPresenter : com.carti.ribs/Presenter { // com.carti.ribs/EmptyPresenter|null[0]
+    constructor <init>() // com.carti.ribs/EmptyPresenter.<init>|<init>(){}[0]
+}
+
 final object com.carti.ribs/DefaultRibDispatchers : com.carti.ribs/RibDispatchersProvider { // com.carti.ribs/DefaultRibDispatchers|null[0]
     final val Default // com.carti.ribs/DefaultRibDispatchers.Default|{}Default[0]
         final fun <get-Default>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/DefaultRibDispatchers.Default.<get-Default>|<get-Default>(){}[0]
@@ -229,6 +244,14 @@ final object com.carti.ribs/RibDispatchers : com.carti.ribs/RibDispatchersProvid
         final fun <get-Unconfined>(): kotlinx.coroutines/CoroutineDispatcher // com.carti.ribs/RibDispatchers.Unconfined.<get-Unconfined>|<get-Unconfined>(){}[0]
 }
 
+final object com.carti.ribs/RibThreadingConfig { // com.carti.ribs/RibThreadingConfig|null[0]
+    final var mainThreadChecker // com.carti.ribs/RibThreadingConfig.mainThreadChecker|{}mainThreadChecker[0]
+        final fun <get-mainThreadChecker>(): com.carti.ribs/MainThreadChecker? // com.carti.ribs/RibThreadingConfig.mainThreadChecker.<get-mainThreadChecker>|<get-mainThreadChecker>(){}[0]
+        final fun <set-mainThreadChecker>(com.carti.ribs/MainThreadChecker?) // com.carti.ribs/RibThreadingConfig.mainThreadChecker.<set-mainThreadChecker>|<set-mainThreadChecker>(com.carti.ribs.MainThreadChecker?){}[0]
+
+    final fun reset() // com.carti.ribs/RibThreadingConfig.reset|reset(){}[0]
+}
+
 final object com.carti.ribs/Ribs { // com.carti.ribs/Ribs|null[0]
     final const val VERSION // com.carti.ribs/Ribs.VERSION|{}VERSION[0]
         final fun <get-VERSION>(): kotlin/String // com.carti.ribs/Ribs.VERSION.<get-VERSION>|<get-VERSION>(){}[0]
@@ -238,3 +261,4 @@ final fun (com.carti.ribs/Router<*>).com.carti.ribs/mount(com.carti.ribs/RibStat
 final fun (kotlinx.coroutines/CoroutineScope).com.carti.ribs/bind(com.carti.ribs/RibCoroutineWorker, kotlin.coroutines/CoroutineContext = ...): com.carti.ribs/BindWorkerHandle // com.carti.ribs/bind|bind@kotlinx.coroutines.CoroutineScope(com.carti.ribs.RibCoroutineWorker;kotlin.coroutines.CoroutineContext){}[0]
 final fun (kotlinx.coroutines/CoroutineScope).com.carti.ribs/bind(kotlin.collections/Iterable<com.carti.ribs/RibCoroutineWorker>, kotlin.coroutines/CoroutineContext = ...) // com.carti.ribs/bind|bind@kotlinx.coroutines.CoroutineScope(kotlin.collections.Iterable<com.carti.ribs.RibCoroutineWorker>;kotlin.coroutines.CoroutineContext){}[0]
 final fun <#A: com.carti.ribs/ViewControllable> (com.carti.ribs/ViewRouter<#A, *>).com.carti.ribs/mount(com.carti.ribs/ViewHost<#A>, com.carti.ribs/RibState? = ...): com.carti.ribs/RibMount // com.carti.ribs/mount|mount@com.carti.ribs.ViewRouter<0:0,*>(com.carti.ribs.ViewHost<0:0>;com.carti.ribs.RibState?){0§<com.carti.ribs.ViewControllable>}[0]
+final fun com.carti.ribs/checkMainThread(kotlin/String) // com.carti.ribs/checkMainThread|checkMainThread(kotlin.String){}[0]

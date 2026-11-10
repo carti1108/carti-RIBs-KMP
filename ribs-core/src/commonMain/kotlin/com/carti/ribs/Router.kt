@@ -9,6 +9,7 @@ package com.carti.ribs
  *
  * 원본과 다른 점: 같은 인스턴스를 두 번 붙이면 실패하고, 붙어 있지 않은 자식을 떼면 아무 일도 하지 않는다.
  * RIB 이벤트 버스와 누수 감지(RibRefWatcher)는 아직 없다.
+ * 생명주기 메서드는 [RibThreadingConfig]에 검사기가 있으면 메인 스레드인지 확인한다(ADR-0007).
  */
 public abstract class Router<I : InteractorType>(public open val interactor: I) {
 
@@ -47,12 +48,14 @@ public abstract class Router<I : InteractorType>(public open val interactor: I) 
     }
 
     public fun attachChild(childRouter: Router<*>, tag: String) {
+        checkMainThread("Router.attachChild")
         check(children.none { it === childRouter }) { "${defaultTag(childRouter)} is already attached" }
         children += childRouter
         childRouter.dispatchAttach(childStateFor(tag), tag)
     }
 
     public fun detachChild(childRouter: Router<*>) {
+        checkMainThread("Router.detachChild")
         val removed = children.remove(childRouter)
         if (!removed) return
         childRouter.dispatchDetach()
@@ -63,6 +66,7 @@ public abstract class Router<I : InteractorType>(public open val interactor: I) 
     }
 
     public fun dispatchAttach(savedInstanceState: RibState?, tag: String) {
+        checkMainThread("Router.dispatchAttach")
         if (!isLoaded) {
             isLoaded = true
             didLoad()
@@ -74,6 +78,7 @@ public abstract class Router<I : InteractorType>(public open val interactor: I) 
     }
 
     public fun dispatchDetach() {
+        checkMainThread("Router.dispatchDetach")
         asInteractor().dispatchDetach()
         willDetach()
         children.toList().forEach(::detachChild)

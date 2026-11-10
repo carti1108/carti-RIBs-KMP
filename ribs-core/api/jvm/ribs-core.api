@@ -32,6 +32,10 @@ public final class com/carti/ribs/EmptyComponent : com/carti/ribs/EmptyDependenc
 public abstract interface class com/carti/ribs/EmptyDependency : com/carti/ribs/Dependency {
 }
 
+public class com/carti/ribs/EmptyPresenter : com/carti/ribs/Presenter {
+	public fun <init> ()V
+}
+
 public abstract class com/carti/ribs/Interactor : com/carti/ribs/InteractorType {
 	public fun <init> (Ljava/lang/Object;)V
 	protected fun didBecomeActive (Lcom/carti/ribs/RibState;)V
@@ -71,6 +75,10 @@ public final class com/carti/ribs/LifecycleEndedException : java/lang/IllegalSta
 
 public final class com/carti/ribs/LifecycleNotStartedException : java/lang/IllegalStateException {
 	public fun <init> (Ljava/lang/String;)V
+}
+
+public abstract interface class com/carti/ribs/MainThreadChecker {
+	public abstract fun isMainThread ()Z
 }
 
 public abstract class com/carti/ribs/Presenter {
@@ -155,6 +163,17 @@ public final class com/carti/ribs/RibState {
 	public final fun getKeys ()Ljava/util/Set;
 }
 
+public final class com/carti/ribs/RibThreadingConfig {
+	public static final field INSTANCE Lcom/carti/ribs/RibThreadingConfig;
+	public final fun getMainThreadChecker ()Lcom/carti/ribs/MainThreadChecker;
+	public final fun reset ()V
+	public final fun setMainThreadChecker (Lcom/carti/ribs/MainThreadChecker;)V
+}
+
+public final class com/carti/ribs/RibThreadingKt {
+	public static final fun checkMainThread (Ljava/lang/String;)V
+}
+
 public final class com/carti/ribs/Ribs {
 	public static final field INSTANCE Lcom/carti/ribs/Ribs;
 	public static final field VERSION Ljava/lang/String;
@@ -191,6 +210,11 @@ public abstract interface class com/carti/ribs/ViewControllable {
 public abstract interface class com/carti/ribs/ViewHost {
 	public abstract fun hide (Lcom/carti/ribs/ViewControllable;)V
 	public abstract fun show (Lcom/carti/ribs/ViewControllable;)V
+}
+
+public abstract class com/carti/ribs/ViewPresenter : com/carti/ribs/Presenter {
+	public fun <init> (Lcom/carti/ribs/ViewControllable;)V
+	public final fun getView ()Lcom/carti/ribs/ViewControllable;
 }
 
 public abstract class com/carti/ribs/ViewRouter : com/carti/ribs/Router {
