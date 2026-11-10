@@ -44,7 +44,8 @@ public struct RIBSlotView: View {
 
     public var body: some View {
         if let screen = slot.current {
-            screen.makeView()
+            // 같은 타입의 새 RIB 화면으로 바뀌어도 이전 화면의 @State가 남지 않도록 객체마다 정체성을 준다.
+            screen.makeView().id(ObjectIdentifier(screen))
         }
     }
 }
