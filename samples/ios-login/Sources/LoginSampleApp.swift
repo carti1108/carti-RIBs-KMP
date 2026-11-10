@@ -18,7 +18,19 @@ struct LoginSampleApp: App {
 @MainActor
 final class AppLauncher: NSObject, @preconcurrency ViewHost {
     let windowSlot = RIBScreenSlot()
-    private lazy var app = LoginApp(viewFactory: SwiftUIViewFactory())
+    private lazy var app = LoginApp(
+        viewFactory: SwiftUIViewFactory(),
+        authService: DelayedAuthService(delayMillis: Self.loginDelayMillis)
+    )
+
+    /// 샘플 서버 응답 지연. 로딩 표시를 눈으로 확인할 수 있을 만큼만 둔다.
+    private static let defaultLoginDelayMillis: Int64 = 800
+
+    /// UI 테스트는 `-loginDelayMillis <ms>` 실행 인자로 지연을 늘려 잠깐 보이는 로딩 상태를 확실히 잡는다.
+    private static var loginDelayMillis: Int64 {
+        let override = UserDefaults.standard.integer(forKey: "loginDelayMillis")
+        return override > 0 ? Int64(override) : defaultLoginDelayMillis
+    }
     private var isStarted = false
 
     func start() {
