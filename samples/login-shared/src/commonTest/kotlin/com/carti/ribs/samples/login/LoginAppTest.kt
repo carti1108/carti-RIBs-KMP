@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
@@ -20,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginAppTest {
@@ -53,7 +55,7 @@ class LoginAppTest {
     }
 
     @Test
-    fun blankNameShowsErrorWithoutCallingService() = runTest(dispatcher) {
+    fun blankNameShowsErrorWithoutCallingService() = appTest {
         app.start(host)
 
         loggedOut().listener?.didTapLogin("   ")
@@ -64,7 +66,7 @@ class LoginAppTest {
     }
 
     @Test
-    fun loginShowsLoadingUntilServiceResponds() = runTest(dispatcher) {
+    fun loginShowsLoadingUntilServiceResponds() = appTest {
         app.start(host)
 
         loggedOut().listener?.didTapLogin("  carti ")
@@ -76,7 +78,7 @@ class LoginAppTest {
     }
 
     @Test
-    fun successfulLoginSwitchesToLoggedIn() = runTest(dispatcher) {
+    fun successfulLoginSwitchesToLoggedIn() = appTest {
         app.start(host)
         login("carti")
 
@@ -88,7 +90,7 @@ class LoginAppTest {
     }
 
     @Test
-    fun failedLoginShowsErrorAndStopsLoading() = runTest(dispatcher) {
+    fun failedLoginShowsErrorAndStopsLoading() = appTest {
         app.start(host)
         login("carti")
 
@@ -101,7 +103,7 @@ class LoginAppTest {
     }
 
     @Test
-    fun tapWhileLoadingIsIgnored() = runTest(dispatcher) {
+    fun tapWhileLoadingIsIgnored() = appTest {
         app.start(host)
         login("carti")
 
@@ -112,7 +114,7 @@ class LoginAppTest {
     }
 
     @Test
-    fun stopWhileLoadingCancelsRequest() = runTest(dispatcher) {
+    fun stopWhileLoadingCancelsRequest() = appTest {
         app.start(host)
         login("carti")
 
@@ -124,7 +126,7 @@ class LoginAppTest {
     }
 
     @Test
-    fun logoutReturnsToFreshLoggedOutScreen() = runTest(dispatcher) {
+    fun logoutReturnsToFreshLoggedOutScreen() = appTest {
         app.start(host)
         login("carti")
         auth.respond(AuthResult.Success("carti"))
@@ -138,6 +140,104 @@ class LoginAppTest {
         assertNull(factory.loggedIn.last().listener)
     }
 
+    @Test
+    fun loggedInShowsTodoListByDefault() = appTest {
+        startLoggedIn()
+
+        assertSame(factory.todoLists.last(), factory.loggedIn.last().screen)
+        assertEquals(TodoStore.SAMPLE_TODOS, factory.todoLists.last().todos)
+    }
+
+    @Test
+    fun selectingTodoPushesDetailAndBackPopsIt() = appTest {
+        startLoggedIn()
+
+        factory.todoLists.last().listener?.didTapTodo(2)
+        assertSame(factory.todoDetails.last(), factory.loggedIn.last().screen)
+        assertEquals("RIB 문서 읽기", factory.todoDetails.last().title)
+
+        assertTrue(app.handleBackPress())
+        assertSame(factory.todoLists.last(), factory.loggedIn.last().screen)
+        assertNull(factory.todoDetails.last().listener)
+
+        assertFalse(app.handleBackPress())
+    }
+
+    @Test
+    fun backOnLoggedOutScreenIsNotHandled() {
+        app.start(host)
+
+        assertFalse(app.handleBackPress())
+    }
+
+    @Test
+    fun togglingDoneInDetailUpdatesListThroughSharedStore() = appTest {
+        startLoggedIn()
+        factory.todoLists.last().listener?.didTapTodo(1)
+
+        factory.todoDetails.last().listener?.didTapToggleDone()
+        factory.todoDetails.last().listener?.didTapBack()
+        runCurrent()
+
+        assertEquals(true, factory.todoDetails.last().isDone)
+        assertEquals(listOf(1L), factory.todoLists.last().todos.filter { it.isDone }.map { it.id })
+        assertSame(factory.todoLists.last(), factory.loggedIn.last().screen)
+    }
+
+    @Test
+    fun sessionTimerTicksWhileLoggedInAndStopsAfterLogout() = appTest {
+        startLoggedIn()
+        val view = factory.loggedIn.last()
+        assertEquals(0L, view.sessionSeconds)
+
+        advanceTimeBy(2_500)
+        assertEquals(2L, view.sessionSeconds)
+
+        view.listener?.didTapLogout()
+        advanceTimeBy(5_000)
+        assertEquals(2L, view.sessionSeconds)
+    }
+
+    @Test
+    fun savedStateRestoresUserOpenDetailAndDoneTodos() = appTest {
+        startLoggedIn()
+        factory.todoLists.last().listener?.didTapTodo(3)
+        factory.todoDetails.last().listener?.didTapToggleDone()
+        val saved = app.saveState()
+        app.stop()
+
+        val restoredFactory = FakeViewFactory()
+        val restored = LoginApp(restoredFactory, FakeAuthService())
+        restored.start(FakeHost(), saved)
+        runCurrent()
+
+        assertTrue(restoredFactory.loggedOut.isEmpty())
+        assertEquals("carti", restoredFactory.loggedIn.last().userName)
+        assertSame(restoredFactory.todoDetails.last(), restoredFactory.loggedIn.last().screen)
+        assertEquals("운동하기", restoredFactory.todoDetails.last().title)
+        assertEquals(true, restoredFactory.todoDetails.last().isDone)
+        restored.stop()
+    }
+
+    /**
+     * 로그인하면 세션 타이머가 끝없이 돌기 때문에, runTest가 끝나기 전에 트리를 내려 코루틴을 정리한다.
+     * 타임아웃은 그래도 남는 코루틴 때문에 테스트가 멈추지 않게 하는 안전장치다.
+     */
+    private fun appTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher, timeout = TEST_TIMEOUT) {
+        try {
+            block()
+        } finally {
+            app.stop()
+        }
+    }
+
+    private fun TestScope.startLoggedIn() {
+        app.start(host)
+        login("carti")
+        auth.respond(AuthResult.Success("carti"))
+        runCurrent()
+    }
+
     private fun TestScope.login(name: String) {
         loggedOut().listener?.didTapLogin(name)
         runCurrent()
@@ -145,6 +245,8 @@ class LoginAppTest {
 
     private fun loggedOut(): FakeLoggedOutView = factory.loggedOut.last()
 }
+
+private val TEST_TIMEOUT = 10.seconds
 
 private class SingleDispatcher(dispatcher: CoroutineDispatcher) : RibDispatchersProvider {
     override val Main: CoroutineDispatcher = dispatcher
@@ -193,13 +295,35 @@ private class FakeLoggedOutView : LoggedOutPresentable {
 private class FakeLoggedInView : LoggedInPresentable {
     override var listener: LoggedInPresentableListener? = null
     var userName: String? = null
+    var sessionSeconds: Long? = null
+    var screen: ViewControllable? = null
     override fun showUserName(name: String) { userName = name }
+    override fun showSessionSeconds(seconds: Long) { sessionSeconds = seconds }
+    override fun showScreen(screen: ViewControllable) { this.screen = screen }
+    override fun hideScreen(screen: ViewControllable) { if (this.screen === screen) this.screen = null }
+}
+
+private class FakeTodoListView : TodoListPresentable {
+    override var listener: TodoListPresentableListener? = null
+    var todos: List<Todo> = emptyList()
+    override fun showTodos(todos: List<Todo>) { this.todos = todos }
+}
+
+private class FakeTodoDetailView : TodoDetailPresentable {
+    override var listener: TodoDetailPresentableListener? = null
+    var title: String? = null
+    var isDone: Boolean? = null
+    override fun showTodo(title: String, isDone: Boolean) { this.title = title; this.isDone = isDone }
 }
 
 private class FakeViewFactory : LoginViewFactory {
     val root = FakeRootView()
     val loggedOut = mutableListOf<FakeLoggedOutView>()
     val loggedIn = mutableListOf<FakeLoggedInView>()
+    val todoLists = mutableListOf<FakeTodoListView>()
+    val todoDetails = mutableListOf<FakeTodoDetailView>()
+    override fun makeTodoListView(): TodoListPresentable = FakeTodoListView().also { todoLists += it }
+    override fun makeTodoDetailView(): TodoDetailPresentable = FakeTodoDetailView().also { todoDetails += it }
     override fun makeRootView(): RootViewControllable = root
     override fun makeLoggedOutView(): LoggedOutPresentable = FakeLoggedOutView().also { loggedOut += it }
     override fun makeLoggedInView(): LoggedInPresentable = FakeLoggedInView().also { loggedIn += it }

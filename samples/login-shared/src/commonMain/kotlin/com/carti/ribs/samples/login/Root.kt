@@ -37,19 +37,33 @@ class RootBuilder(dependency: RootDependency) : Builder<RootDependency>(dependen
     }
 }
 
+/** 저장 상태: 로그인한 사용자 이름. 되살릴 때 이름이 있으면 로그인 화면을 건너뛴다. */
 class RootInteractor : Interactor<Unit, RootRouter>(Unit), LoggedOutListener, LoggedInListener {
+    private var userName: String? = null
+
     override fun didBecomeActive(savedInstanceState: RibState?) {
-        router.routeToLoggedOut()
+        val restoredUser = savedInstanceState?.get(KEY_USER_NAME) as? String
+        if (restoredUser != null) didLogin(restoredUser) else router.routeToLoggedOut()
+    }
+
+    override fun onSaveInstanceState(outState: MutableMap<String, Any?>) {
+        outState[KEY_USER_NAME] = userName
     }
 
     override fun didLogin(userName: String) {
+        this.userName = userName
         router.routeAwayFromLoggedOut()
         router.routeToLoggedIn(userName)
     }
 
     override fun didRequestLogout() {
+        userName = null
         router.routeAwayFromLoggedIn()
         router.routeToLoggedOut()
+    }
+
+    private companion object {
+        const val KEY_USER_NAME = "userName"
     }
 }
 
@@ -61,6 +75,9 @@ class RootRouter(
 ) : LaunchRouter<RootViewControllable, RootInteractor>(view, interactor) {
     private var loggedOut: LoggedOutRouter? = null
     private var loggedIn: LoggedInRouter? = null
+
+    /** 자식에게 먼저 맡긴다. 아무도 처리하지 않으면 false라서 플랫폼 기본 동작을 따른다. */
+    override fun handleBackPress(): Boolean = loggedIn?.handleBackPress() ?: false
 
     fun routeToLoggedOut() {
         if (loggedOut != null) return
