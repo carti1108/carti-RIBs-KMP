@@ -6,7 +6,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class LoggedOutScreen: NSObject, @preconcurrency LoggedOutViewControllable, SwiftUIRenderable {
-    @ObservationIgnored var listener: (any LoggedOutViewListener)?
+    @ObservationIgnored weak var listener: (any LoggedOutViewListener)?
     private(set) var errorMessage: String?
 
     func showError(message: String?) {

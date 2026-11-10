@@ -6,7 +6,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class LoggedInScreen: NSObject, @preconcurrency LoggedInViewControllable, SwiftUIRenderable {
-    @ObservationIgnored var listener: (any LoggedInViewListener)?
+    @ObservationIgnored weak var listener: (any LoggedInViewListener)?
     private(set) var userName = ""
 
     func showUserName(name: String) {
