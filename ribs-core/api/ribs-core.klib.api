@@ -192,7 +192,15 @@ final class com.carti.ribs/RibState { // com.carti.ribs/RibState|null[0]
         final fun <get-keys>(): kotlin.collections/Set<kotlin/String> // com.carti.ribs/RibState.keys.<get-keys>|<get-keys>(){}[0]
 
     final fun contains(kotlin/String): kotlin/Boolean // com.carti.ribs/RibState.contains|contains(kotlin.String){}[0]
+    final fun encodeToString(): kotlin/String // com.carti.ribs/RibState.encodeToString|encodeToString(){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.carti.ribs/RibState.equals|equals(kotlin.Any?){}[0]
     final fun get(kotlin/String): kotlin/Any? // com.carti.ribs/RibState.get|get(kotlin.String){}[0]
+    final fun hashCode(): kotlin/Int // com.carti.ribs/RibState.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.carti.ribs/RibState.toString|toString(){}[0]
+
+    final object Companion { // com.carti.ribs/RibState.Companion|null[0]
+        final fun decodeFromString(kotlin/String): com.carti.ribs/RibState // com.carti.ribs/RibState.Companion.decodeFromString|decodeFromString(kotlin.String){}[0]
+    }
 }
 
 open class <#A: com.carti.ribs/Dependency> com.carti.ribs/Component { // com.carti.ribs/Component|null[0]
