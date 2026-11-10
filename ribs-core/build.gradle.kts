@@ -53,7 +53,7 @@ kotlin {
  * - expect/actual 선언 금지
  * - `!!` 금지
  */
-val checkRibsRules by tasks.registering {
+val checkRibsRules = tasks.register("checkRibsRules") {
     group = "verification"
     description = "Checks shared-code rules: no platform imports, no expect/actual, no !!."
     val sources = fileTree("src/commonMain/kotlin") { include("**/*.kt") }
