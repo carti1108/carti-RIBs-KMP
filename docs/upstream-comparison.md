@@ -57,6 +57,7 @@
 |---|---|
 | `Component.kt`의 `Dependency`, `EmptyDependency`, `EmptyComponent`, `Component.shared` | RIBs-iOS 방식 수동 DI(ADR-0003) |
 | `RibMount.kt`의 `ViewHost`, `mount`, `RibMount` | RIB 없는 호스트에 하위 트리 장착 |
+| `ribs-web`의 `ViewStore`, `ScreenSlot`, `CurrentScreen` | 원본에 웹 대상이 없다. React가 구독할 화면 상태 저장소와 자식 화면 자리(ADR-0009) |
 
 ## 스코프 세부 동작 (원본에 맞춤)
 
