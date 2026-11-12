@@ -17,6 +17,7 @@ kotlin {
     }
     js {
         nodejs()
+        browser()
     }
 
     // 앱에는 Kotlin 프레임워크를 하나만 넣을 수 있으므로 ribs-core를 이 프레임워크에 export한다.
