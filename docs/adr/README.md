@@ -34,3 +34,4 @@
 | [ADR-0006](ADR-0006-swift-bridge-via-view-interfaces.md) | Swift 연동은 뷰 인터페이스 호출로 하고 Flow 브리지 도구를 쓰지 않는다 | 채택 | 2026-11-10 |
 | [ADR-0007](ADR-0007-injected-main-thread-check.md) | 메인 스레드 검사는 플랫폼이 주입한 검사기로 생명주기 진입점에서 한다 | 채택 | 2026-11-10 |
 | [ADR-0008](ADR-0008-ribstate-string-encoding.md) | RibState는 허용 타입을 제한하고 문자열 하나로 저장한다 | 채택 | 2026-11-10 |
+| [ADR-0009](ADR-0009-web-bridge-via-kotlin-view-store.md) | 웹(React) 연동은 Kotlin이 뷰 인터페이스를 구현하고 화면 상태 저장소를 내보낸다 | 채택 | 2026-11-12 |
