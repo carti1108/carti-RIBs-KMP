@@ -25,6 +25,10 @@ kotlin {
     }
     js {
         nodejs()
+        // 웹 연동(ADR-0009). 공통 테스트를 브라우저에서도 돌린다
+        browser {
+            testTask { useKarma { useChromeHeadless() } }
+        }
     }
     // Swift 연동용 xcframework (ADR-0006). `assembleRIBsKMPXCFramework`로 만든다.
     val xcFramework = XCFramework(APPLE_FRAMEWORK_NAME)
