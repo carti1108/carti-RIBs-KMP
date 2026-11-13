@@ -134,3 +134,9 @@ npm run dev
 - [원본 대비 파일 비교](docs/upstream-comparison.md)
 - [ADR 목록](docs/adr/README.md)
 - [작업 규칙](AGENTS.md)
+
+## 라이선스
+
+carti-RIBs-KMP는 [uber/RIBs](https://github.com/uber/RIBs)(Copyright (c) 2017 Uber Technologies)의 설계와 API를 바탕으로 Kotlin Multiplatform용으로 다시 구현한 파생 프로젝트이며, 원본과 같은 Apache License 2.0으로 배포합니다. 원본과 달라진 점은 [docs/upstream-comparison.md](docs/upstream-comparison.md)에 정리했습니다. 전문은 [LICENSE.txt](LICENSE.txt)를 참고하세요.
+
+carti-RIBs-KMP는 Uber의 공식 프로젝트가 아닙니다.
