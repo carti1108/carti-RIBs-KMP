@@ -72,16 +72,22 @@ interface ${n}PresentableListener {
     fun didTapClose()
 }
 
-/** 공유 코드 → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 부른다(ADR-0007). */
-interface ${n}Presentable : Presentable, ViewControllable {
+/** Interactor → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 부른다(ADR-0007). */
+interface ${n}Presentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: ${n}PresentableListener?
     fun showTitle(title: String)
 }
 
+/** Router → 뷰. 자식 화면을 붙일 때 메서드를 추가한다. */
+interface ${n}ViewControllable : ViewControllable
+
+/** 플랫폼 뷰 하나가 구현하는 묶음. Interactor는 [${n}Presentable]로, Router는 [${n}ViewControllable]로만 본다. */
+interface ${n}ViewContract : ${n}Presentable, ${n}ViewControllable
+
 /** 부모가 제공해야 하는 것. */
 interface ${n}Dependency : Dependency {
-    fun make${n}View(): ${n}Presentable
+    fun make${n}View(): ${n}ViewContract
 }
 
 /** 자식 → 부모: 사용자 의도로 표현한다. 라우팅은 부모가 정한다. */
@@ -115,8 +121,8 @@ class ${n}Interactor(
     override fun didTapClose() = listener.didRequestClose$n()
 }
 
-class ${n}Router(interactor: ${n}Interactor, view: ${n}Presentable) :
-    ViewableRouter<${n}Interactor, ${n}Presentable>(interactor, view) {
+class ${n}Router(interactor: ${n}Interactor, view: ${n}ViewControllable) :
+    ViewableRouter<${n}Interactor, ${n}ViewControllable>(interactor, view) {
     init {
         interactor.router = this
     }
@@ -175,14 +181,14 @@ class ${n}InteractorTest {
         assertTrue(listener.closeRequested)
     }
 
-    private class Fake${n}View : ${n}Presentable {
+    private class Fake${n}View : ${n}ViewContract {
         override var listener: ${n}PresentableListener? = null
         var title: String? = null
         override fun showTitle(title: String) { this.title = title }
     }
 
-    private class FakeDependency(private val view: ${n}Presentable) : ${n}Dependency {
-        override fun make${n}View(): ${n}Presentable = view
+    private class FakeDependency(private val view: ${n}ViewContract) : ${n}Dependency {
+        override fun make${n}View(): ${n}ViewContract = view
     }
 
     private class FakeListener : ${n}Listener {
@@ -207,7 +213,7 @@ import SwiftUI
 /// ${n} RIB의 뷰. 상태는 공유 코드가 넘기고, 입력은 `listener`로 돌려준다.
 @MainActor
 @Observable
-final class ${n}Screen: NSObject, @preconcurrency ${n}Presentable, SwiftUIRenderable {
+final class ${n}Screen: NSObject, @preconcurrency ${n}ViewContract, SwiftUIRenderable {
     @ObservationIgnored weak var listener: (any ${n}PresentableListener)?
     private(set) var title = ""
 
@@ -246,11 +252,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import com.carti.ribs.compose.ComposeRenderable
-import $pkg.${n}Presentable
+import $pkg.${n}ViewContract
 import $pkg.${n}PresentableListener
 
 /** ${n} RIB의 뷰. */
-class ${n}Screen : ${n}Presentable, ComposeRenderable {
+class ${n}Screen : ${n}ViewContract, ComposeRenderable {
     override var listener: ${n}PresentableListener? = null
     private var title: String by mutableStateOf("")
 

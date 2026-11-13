@@ -16,12 +16,18 @@ interface LoggedOutPresentableListener {
 }
 
 /** 공유 코드 → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 불린다(ADR-0007). */
-interface LoggedOutPresentable : Presentable, ViewControllable {
+interface LoggedOutPresentable : Presentable {
     /** 활성 구간에만 설정된다. 비활성이면 null이라 입력이 무시된다. 플랫폼은 약한 참조로 둔다. */
     var listener: LoggedOutPresentableListener?
     fun showError(message: String?)
     fun showLoading(isLoading: Boolean)
 }
+
+/** Router → 뷰. 붙일 자식 화면이 없어 비어 있다. RIBs-iOS 템플릿의 `LoggedOutViewControllable`. */
+interface LoggedOutViewControllable : ViewControllable
+
+/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [LoggedOutPresentable]로, Router는 [LoggedOutViewControllable]로만 본다. */
+interface LoggedOutViewContract : LoggedOutPresentable, LoggedOutViewControllable
 
 interface LoggedOutDependency : Dependency {
     val viewFactory: LoginViewFactory
@@ -100,5 +106,5 @@ class LoggedOutInteractor(
     }
 }
 
-class LoggedOutRouter(interactor: LoggedOutInteractor, view: LoggedOutPresentable) :
-    ViewableRouter<LoggedOutInteractor, LoggedOutPresentable>(interactor, view)
+class LoggedOutRouter(interactor: LoggedOutInteractor, view: LoggedOutViewControllable) :
+    ViewableRouter<LoggedOutInteractor, LoggedOutViewControllable>(interactor, view)

@@ -284,7 +284,7 @@ private class FakeRootView : RootViewControllable {
     override fun hideScreen(screen: ViewControllable) { if (this.screen === screen) this.screen = null }
 }
 
-private class FakeLoggedOutView : LoggedOutPresentable {
+private class FakeLoggedOutView : LoggedOutViewContract {
     override var listener: LoggedOutPresentableListener? = null
     var error: String? = null
     var isLoading = false
@@ -292,7 +292,7 @@ private class FakeLoggedOutView : LoggedOutPresentable {
     override fun showLoading(isLoading: Boolean) { this.isLoading = isLoading }
 }
 
-private class FakeLoggedInView : LoggedInPresentable {
+private class FakeLoggedInView : LoggedInViewContract {
     override var listener: LoggedInPresentableListener? = null
     var userName: String? = null
     var sessionSeconds: Long? = null
@@ -303,13 +303,13 @@ private class FakeLoggedInView : LoggedInPresentable {
     override fun hideScreen(screen: ViewControllable) { if (this.screen === screen) this.screen = null }
 }
 
-private class FakeTodoListView : TodoListPresentable {
+private class FakeTodoListView : TodoListViewContract {
     override var listener: TodoListPresentableListener? = null
     var todos: List<Todo> = emptyList()
     override fun showTodos(todos: List<Todo>) { this.todos = todos }
 }
 
-private class FakeTodoDetailView : TodoDetailPresentable {
+private class FakeTodoDetailView : TodoDetailViewContract {
     override var listener: TodoDetailPresentableListener? = null
     var title: String? = null
     var isDone: Boolean? = null
@@ -322,11 +322,11 @@ private class FakeViewFactory : LoginViewFactory {
     val loggedIn = mutableListOf<FakeLoggedInView>()
     val todoLists = mutableListOf<FakeTodoListView>()
     val todoDetails = mutableListOf<FakeTodoDetailView>()
-    override fun makeTodoListView(): TodoListPresentable = FakeTodoListView().also { todoLists += it }
-    override fun makeTodoDetailView(): TodoDetailPresentable = FakeTodoDetailView().also { todoDetails += it }
+    override fun makeTodoListView(): TodoListViewContract = FakeTodoListView().also { todoLists += it }
+    override fun makeTodoDetailView(): TodoDetailViewContract = FakeTodoDetailView().also { todoDetails += it }
     override fun makeRootView(): RootViewControllable = root
-    override fun makeLoggedOutView(): LoggedOutPresentable = FakeLoggedOutView().also { loggedOut += it }
-    override fun makeLoggedInView(): LoggedInPresentable = FakeLoggedInView().also { loggedIn += it }
+    override fun makeLoggedOutView(): LoggedOutViewContract = FakeLoggedOutView().also { loggedOut += it }
+    override fun makeLoggedInView(): LoggedInViewContract = FakeLoggedInView().also { loggedIn += it }
 }
 
 private class FakeHost : ViewHost<RootViewControllable> {

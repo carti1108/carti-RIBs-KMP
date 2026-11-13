@@ -3,15 +3,15 @@
 package com.carti.ribs.samples.web
 
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.samples.login.LoggedInPresentable
+import com.carti.ribs.samples.login.LoggedInViewContract
 import com.carti.ribs.samples.login.LoggedInPresentableListener
-import com.carti.ribs.samples.login.LoggedOutPresentable
+import com.carti.ribs.samples.login.LoggedOutViewContract
 import com.carti.ribs.samples.login.LoggedOutPresentableListener
 import com.carti.ribs.samples.login.RootViewControllable
 import com.carti.ribs.samples.login.Todo
-import com.carti.ribs.samples.login.TodoDetailPresentable
+import com.carti.ribs.samples.login.TodoDetailViewContract
 import com.carti.ribs.samples.login.TodoDetailPresentableListener
-import com.carti.ribs.samples.login.TodoListPresentable
+import com.carti.ribs.samples.login.TodoListViewContract
 import com.carti.ribs.samples.login.TodoListPresentableListener
 import com.carti.ribs.web.ScreenSlot
 import com.carti.ribs.web.ViewStore
@@ -39,7 +39,7 @@ class WebRootView : RootViewControllable, WebViewControllable {
 data class LoggedOutState(val isLoading: Boolean, val errorMessage: String?)
 
 @JsExport
-class WebLoggedOutView : LoggedOutPresentable, WebViewControllable {
+class WebLoggedOutView : LoggedOutViewContract, WebViewControllable {
     override val screenKey: String = "loggedOut"
     val store: ViewStore<LoggedOutState> = ViewStore(LoggedOutState(isLoading = false, errorMessage = null))
 
@@ -61,7 +61,7 @@ class WebLoggedOutView : LoggedOutPresentable, WebViewControllable {
 data class LoggedInState(val userName: String, val sessionSeconds: Int)
 
 @JsExport
-class WebLoggedInView : LoggedInPresentable, WebViewControllable {
+class WebLoggedInView : LoggedInViewContract, WebViewControllable {
     override val screenKey: String = "loggedIn"
     val store: ViewStore<LoggedInState> = ViewStore(LoggedInState(userName = "", sessionSeconds = 0))
     val slot: ScreenSlot = ScreenSlot()
@@ -98,7 +98,7 @@ class TodoListState(val todos: Array<TodoItem>) {
 }
 
 @JsExport
-class WebTodoListView : TodoListPresentable, WebViewControllable {
+class WebTodoListView : TodoListViewContract, WebViewControllable {
     override val screenKey: String = "todoList"
     val store: ViewStore<TodoListState> = ViewStore(TodoListState(emptyArray()))
 
@@ -118,7 +118,7 @@ class WebTodoListView : TodoListPresentable, WebViewControllable {
 data class TodoDetailState(val title: String, val isDone: Boolean)
 
 @JsExport
-class WebTodoDetailView : TodoDetailPresentable, WebViewControllable {
+class WebTodoDetailView : TodoDetailViewContract, WebViewControllable {
     override val screenKey: String = "todoDetail"
     val store: ViewStore<TodoDetailState> = ViewStore(TodoDetailState(title = "", isDone = false))
 

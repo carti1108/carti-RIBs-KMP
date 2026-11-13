@@ -12,10 +12,16 @@ interface TodoDetailPresentableListener {
     fun didTapBack()
 }
 
-interface TodoDetailPresentable : Presentable, ViewControllable {
+interface TodoDetailPresentable : Presentable {
     var listener: TodoDetailPresentableListener?
     fun showTodo(title: String, isDone: Boolean)
 }
+
+/** Router → 뷰. 붙일 자식 화면이 없어 비어 있다. RIBs-iOS 템플릿의 `TodoDetailViewControllable`. */
+interface TodoDetailViewControllable : ViewControllable
+
+/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [TodoDetailPresentable]로, Router는 [TodoDetailViewControllable]로만 본다. */
+interface TodoDetailViewContract : TodoDetailPresentable, TodoDetailViewControllable
 
 interface TodoDetailDependency : Dependency {
     val viewFactory: LoginViewFactory
@@ -66,5 +72,5 @@ class TodoDetailInteractor(
     }
 }
 
-class TodoDetailRouter(interactor: TodoDetailInteractor, view: TodoDetailPresentable, val todoId: Long) :
-    ViewableRouter<TodoDetailInteractor, TodoDetailPresentable>(interactor, view)
+class TodoDetailRouter(interactor: TodoDetailInteractor, view: TodoDetailViewControllable, val todoId: Long) :
+    ViewableRouter<TodoDetailInteractor, TodoDetailViewControllable>(interactor, view)

@@ -18,15 +18,22 @@ interface LoggedInPresentableListener {
     fun didTapLogout()
 }
 
-/** 공유 코드 → 뷰: 머리말(사용자 이름, 세션 시간)과 자식 RIB 화면 하나를 담는 영역(ADR-0006). */
-interface LoggedInPresentable : Presentable, ViewControllable {
+/** Interactor → 뷰: 머리말(사용자 이름, 세션 시간)을 그린다(ADR-0006). */
+interface LoggedInPresentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: LoggedInPresentableListener?
     fun showUserName(name: String)
     fun showSessionSeconds(seconds: Long)
+}
+
+/** Router → 뷰: 자식 화면을 붙이고 뗀다. RIBs-iOS 템플릿의 `LoggedInViewControllable`. */
+interface LoggedInViewControllable : ViewControllable {
     fun showScreen(screen: ViewControllable)
     fun hideScreen(screen: ViewControllable)
 }
+
+/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [LoggedInPresentable]로, Router는 [LoggedInViewControllable]로만 본다. */
+interface LoggedInViewContract : LoggedInPresentable, LoggedInViewControllable
 
 interface LoggedInDependency : Dependency {
     val viewFactory: LoginViewFactory
@@ -112,10 +119,10 @@ class LoggedInInteractor(
 
 class LoggedInRouter(
     interactor: LoggedInInteractor,
-    view: LoggedInPresentable,
+    view: LoggedInViewControllable,
     private val listBuilder: TodoListBuilder,
     private val detailBuilder: TodoDetailBuilder,
-) : ViewableRouter<LoggedInInteractor, LoggedInPresentable>(interactor, view) {
+) : ViewableRouter<LoggedInInteractor, LoggedInViewControllable>(interactor, view) {
     private var list: TodoListRouter? = null
     private var detail: TodoDetailRouter? = null
 

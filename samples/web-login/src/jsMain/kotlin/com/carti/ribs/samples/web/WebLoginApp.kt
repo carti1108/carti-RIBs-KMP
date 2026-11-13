@@ -4,13 +4,13 @@ package com.carti.ribs.samples.web
 
 import com.carti.ribs.ViewHost
 import com.carti.ribs.samples.login.DelayedAuthService
-import com.carti.ribs.samples.login.LoggedInPresentable
-import com.carti.ribs.samples.login.LoggedOutPresentable
+import com.carti.ribs.samples.login.LoggedInViewContract
+import com.carti.ribs.samples.login.LoggedOutViewContract
 import com.carti.ribs.samples.login.LoginApp
 import com.carti.ribs.samples.login.LoginViewFactory
 import com.carti.ribs.samples.login.RootViewControllable
-import com.carti.ribs.samples.login.TodoDetailPresentable
-import com.carti.ribs.samples.login.TodoListPresentable
+import com.carti.ribs.samples.login.TodoDetailViewContract
+import com.carti.ribs.samples.login.TodoListViewContract
 import com.carti.ribs.web.ScreenSlot
 
 /**
@@ -38,8 +38,8 @@ class WebLoginApp(authDelayMillis: Int) {
 
 private class WebViewFactory : LoginViewFactory {
     override fun makeRootView(): RootViewControllable = WebRootView()
-    override fun makeLoggedOutView(): LoggedOutPresentable = WebLoggedOutView()
-    override fun makeLoggedInView(): LoggedInPresentable = WebLoggedInView()
-    override fun makeTodoListView(): TodoListPresentable = WebTodoListView()
-    override fun makeTodoDetailView(): TodoDetailPresentable = WebTodoDetailView()
+    override fun makeLoggedOutView(): LoggedOutViewContract = WebLoggedOutView()
+    override fun makeLoggedInView(): LoggedInViewContract = WebLoggedInView()
+    override fun makeTodoListView(): TodoListViewContract = WebTodoListView()
+    override fun makeTodoDetailView(): TodoDetailViewContract = WebTodoDetailView()
 }

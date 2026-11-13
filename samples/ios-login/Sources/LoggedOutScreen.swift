@@ -5,7 +5,7 @@ import SwiftUI
 /// 로그아웃 상태 RIB의 뷰. 상태는 공유 코드가 `showError`·`showLoading`으로 넘기고, 입력은 `listener`로 돌려준다.
 @MainActor
 @Observable
-final class LoggedOutScreen: NSObject, @preconcurrency LoggedOutPresentable, SwiftUIRenderable {
+final class LoggedOutScreen: NSObject, @preconcurrency LoggedOutViewContract, SwiftUIRenderable {
     @ObservationIgnored weak var listener: (any LoggedOutPresentableListener)?
     private(set) var errorMessage: String?
     private(set) var isLoading = false

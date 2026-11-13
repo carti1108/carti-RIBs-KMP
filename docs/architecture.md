@@ -20,11 +20,14 @@
 
 | 방향 | 이름 | 예 |
 |---|---|---|
-| Interactor → 뷰 | `XxxPresentable : Presentable, ViewControllable` | `LoggedOutPresentable.showError(message)` |
+| Interactor → 뷰 | `XxxPresentable : Presentable` | `LoggedInPresentable.showUserName(name)` |
 | 뷰 → Interactor | `XxxPresentableListener` | `LoggedOutPresentableListener.didTapLogin(rawName)` |
-| Router → 뷰 (자식 화면만 담는 뷰) | `XxxViewControllable` | `RootViewControllable.showScreen(screen)` |
+| Router → 뷰 | `XxxViewControllable : ViewControllable` | `LoggedInViewControllable.showScreen(screen)` |
+| 플랫폼 뷰가 구현하는 묶음 | `XxxViewContract : XxxPresentable, XxxViewControllable` | `LoginViewFactory.makeLoggedInView(): LoggedInViewContract` |
 
-- 원본은 `XxxPresentable`과 `XxxViewControllable`을 나누고 한 뷰가 둘 다 구현한다. 플랫폼 팩토리가 뷰 하나를 돌려주도록 이 프레임워크의 샘플은 한 인터페이스에 합쳐 둔다.
+- 원본처럼 `XxxPresentable`과 `XxxViewControllable`을 나눈다. Interactor는 `XxxPresentable`만, Router는 `XxxViewControllable`만 받는다. 자식 화면이 없는 RIB의 `XxxViewControllable`은 비어 있다.
+- 원본은 Builder가 구체 ViewController를 만들어 두 역할을 함께 얻는다. 공유 코드는 플랫폼 클래스를 모르므로 팩토리가 두 인터페이스를 묶은 `XxxViewContract`를 돌려준다. 이 이름은 플랫폼 구현 이름(`XxxScreen`, `WebXxxView`, SwiftUI `XxxView`)과 겹치지 않게 정했다.
+- 뷰만 담는 루트처럼 Interactor가 그릴 것이 없는 RIB은 `XxxViewControllable`만 둔다(`RootViewControllable`).
 - 플랫폼 뷰는 `listener`를 약한 참조로 둔다. 공유 코드와 플랫폼 객체 사이의 순환 참조는 Kotlin/Native GC가 회수하지 못한다.
 - 뷰 계약은 메인 스레드에서만 부른다. 프레임워크가 가로챌 수 없는 호출 지점에서는 `checkMainThread()`를 쓴다([ADR-0007](adr/ADR-0007-injected-main-thread-check.md)). Interactor와 Worker의 `coroutineScope`는 메인 디스패처다.
 
