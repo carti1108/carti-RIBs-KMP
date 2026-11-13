@@ -1,5 +1,5 @@
 ### ADR-0001 Uber RIBs Android를 원본으로 삼는다
-- 상태: 채택
+- 상태: 대체됨 (→ ADR-0010)
 - 날짜: 2026-11-09
 - 배경: RIBs를 Kotlin Multiplatform으로 새로 구현한다. 기준이 될 원본이 없으면 API 이름과 생명주기 순서가 작업자마다 달라지고, 기존 RIBs 사용자가 익숙하게 쓸 수 없다.
 - 결정: `uber/RIBs`의 Android 구현(코어와 `rib-coroutines`)을 원본으로 삼는다. 클래스·메서드 이름과 생명주기 호출 순서를 그대로 따르고, 공유 코드로 옮길 수 없는 부분만 바꾼다. 바꾼 부분은 [architecture.md](../architecture.md)의 "원본과 다른 점" 표에 남긴다.
