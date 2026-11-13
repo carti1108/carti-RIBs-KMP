@@ -1,50 +1,75 @@
 package com.carti.ribs
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 
-/** Interactor 생명주기 이벤트. Uber `InteractorEvent`와 같다. */
-public enum class InteractorEvent { ACTIVE, INACTIVE }
+/** Interactor의 활성 상태를 읽는 범위. RIBs-iOS `InteractorScope`에 대응한다. */
+public interface InteractorScope {
+    public val isActive: Boolean
 
-/** 제네릭 없이 Interactor를 가리키는 타입. Uber `InteractorType`에 대응한다. */
-public interface InteractorType {
-    public fun isAttached(): Boolean
-    public fun handleBackPress(): Boolean
+    /** 활성 상태 스트림. 현재 값을 먼저 보내고 바뀔 때만 다시 보낸다(원본의 `distinctUntilChanged`). */
+    public val isActiveStream: StateFlow<Boolean>
+}
+
+/** Router가 활성화·비활성화할 수 있는 Interactor. RIBs-iOS `Interactable`에 대응한다. */
+public interface Interactable : InteractorScope {
+    public fun activate()
+    public fun deactivate()
 }
 
 /**
- * 비즈니스 로직을 담는 RIB 구성 요소. Uber RIBs Android `Interactor<P, R>`를 따른다.
+ * 비즈니스 로직을 담는 RIB 구성 요소. RIBs-iOS `Interactor`를 따른다.
  *
- * - [didBecomeActive]에서 시작한 작업은 [coroutineScope]에 띄운다. 이 스코프는 [willResignActive]가 끝난 뒤 취소된다.
+ * - [didBecomeActive]에서 시작한 작업은 [coroutineScope]에 띄운다. 원본의 `disposeOnDeactivate`에 해당하며,
+ *   [willResignActive]가 끝난 뒤 취소된다.
+ * - 이미 활성인데 [activate]하거나 비활성인데 [deactivate]하면 원본처럼 아무 일도 하지 않는다.
  * - 생명주기 메서드는 단일 스레드에서만 호출한다(ADR-0005).
+ *
+ * 원본에 없는 확장: 상태 복원([savedInstanceState], [onSaveInstanceState], ADR-0008)과 [handleBackPress].
  */
-public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : InteractorType {
+public open class Interactor : Interactable {
 
-    private val lifecycleEvents = MutableSharedFlow<InteractorEvent>(replay = 1, extraBufferCapacity = 1)
-
-    /** 생명주기 이벤트 스트림. 마지막 이벤트를 새 구독자에게 다시 보낸다(원본의 BehaviorRelay). */
-    public val lifecycle: SharedFlow<InteractorEvent> = lifecycleEvents.asSharedFlow()
-
+    private val activeState = MutableStateFlow(false)
     private val activeScope = LifecycleScope(this::class.simpleName ?: "Interactor")
-    private var attachedRouter: R? = null
+    private var restoredState: RibState? = null
 
-    /** 이 Interactor의 Router. Router가 생성될 때 연결된다. */
-    public val router: R
-        get() = checkNotNull(attachedRouter) { "Router is not set for ${this::class.simpleName}" }
+    final override val isActive: Boolean get() = activeState.value
+
+    final override val isActiveStream: StateFlow<Boolean> = activeState.asStateFlow()
 
     /**
-     * 활성 구간에 묶인 스코프. Uber `rib-coroutines`의 `Interactor.coroutineScope`에 대응한다.
-     * 활성 전에는 [LifecycleNotStartedException], 비활성 후에는 [LifecycleEndedException]을 던진다.
+     * 활성 구간에 묶인 스코프. 활성 전에는 [LifecycleNotStartedException], 비활성 후에는
+     * [LifecycleEndedException]을 던진다.
      */
     public val coroutineScope: CoroutineScope
         get() = activeScope.scope
 
-    final override fun isAttached(): Boolean = activeScope.isActive
+    /** Router가 넘긴 복원 상태. 없으면 null. [didBecomeActive]에서 읽는다. */
+    protected val savedInstanceState: RibState?
+        get() = restoredState
 
-    /** 활성화될 때 호출된다. */
-    protected open fun didBecomeActive(savedInstanceState: RibState?) {}
+    final override fun activate() {
+        if (isActive) return
+        activeScope.start()
+        activeState.value = true
+        didBecomeActive()
+    }
+
+    /** 활성화된 직후 호출된다. */
+    protected open fun didBecomeActive() {}
+
+    final override fun deactivate() {
+        if (!isActive) return
+        willResignActive()
+        activeScope.end()
+        activeState.value = false
+    }
 
     /** 비활성화 직전에 호출된다. 이 시점까지 [coroutineScope]는 살아 있다. */
     protected open fun willResignActive() {}
@@ -52,34 +77,11 @@ public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : In
     /** 상태 저장 요청. Router가 상태를 저장할 때 호출한다. */
     protected open fun onSaveInstanceState(outState: MutableMap<String, Any?>) {}
 
-    /** 뒤로 가기를 처리했으면 true. */
-    override fun handleBackPress(): Boolean = false
+    /** 뒤로 가기를 처리했으면 true. 원본 iOS에는 없고 Android 어댑터가 쓴다. */
+    public open fun handleBackPress(): Boolean = false
 
-    /**
-     * Router 생성 시 Router가 자신을 연결한다. 제네릭은 런타임에 지워지므로 타입 일치는
-     * `Router<I>`의 선언(`I`가 이 Interactor 타입)으로 보장된다.
-     */
-    @Suppress("UNCHECKED_CAST")
-    internal fun setRouterInternal(router: Router<*>) {
-        check(attachedRouter == null) { "Router is already set for ${this::class.simpleName}" }
-        attachedRouter = router as R
-    }
-
-    internal fun dispatchAttach(savedInstanceState: RibState?) {
-        check(!isAttached()) { "${this::class.simpleName} is already attached" }
-        activeScope.start()
-        lifecycleEvents.tryEmit(InteractorEvent.ACTIVE)
-        (presenter as? Presenter)?.dispatchLoad()
-        didBecomeActive(savedInstanceState)
-    }
-
-    internal fun dispatchDetach(): P {
-        check(isAttached()) { "${this::class.simpleName} is not attached" }
-        (presenter as? Presenter)?.dispatchUnload()
-        willResignActive()
-        activeScope.end()
-        lifecycleEvents.tryEmit(InteractorEvent.INACTIVE)
-        return presenter
+    internal fun restore(state: RibState?) {
+        restoredState = state
     }
 
     internal fun saveInstanceState(): RibState {
@@ -88,3 +90,15 @@ public abstract class Interactor<P, R : Router<*>>(public val presenter: P) : In
         return RibState(outState.toMap())
     }
 }
+
+/** RIB 생명주기에 기대지 않는 뷰 쪽 Interactor 연결점. RIBs-iOS `PresentableInteractor`를 따른다. */
+public open class PresentableInteractor<P>(
+    /** 이 Interactor가 상태를 보내는 뷰. 보통 뷰가 `XxxPresentable`을 직접 구현한다. */
+    public val presenter: P,
+) : Interactor()
+
+/** [scope]가 활성일 때만 값을 내보낸다. RIBs-iOS `confineTo(_:)`에 대응한다. */
+public fun <T> Flow<T>.confineTo(scope: InteractorScope): Flow<T> =
+    combine(scope.isActiveStream, this) { isActive, value -> isActive to value }
+        .filter { (isActive, _) -> isActive }
+        .map { (_, value) -> value }

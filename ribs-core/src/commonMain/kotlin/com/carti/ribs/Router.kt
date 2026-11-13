@@ -1,115 +1,130 @@
 package com.carti.ribs
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
+/** Router 생명주기 이벤트. RIBs-iOS `RouterLifecycle`에 대응한다. */
+public enum class RouterLifecycle { DID_LOAD }
+
+/** RIBs-iOS `RouterScope`. */
+public interface RouterScope {
+    public val lifecycle: Flow<RouterLifecycle>
+}
+
 /**
- * RIB 트리의 노드. Uber RIBs Android `Router<I>`를 따른다.
+ * RIB 트리의 노드. RIBs-iOS `Routing`. 테스트에서 가짜 자식 Router를 쓸 수 있도록
+ * [Router]가 내부에서 부르는 멤버를 모두 여기에 둔다.
+ */
+public interface Routing : RouterScope {
+    public val interactable: Interactable
+    public val children: List<Routing>
+    public fun load()
+    public fun attachChild(child: Routing)
+    public fun detachChild(child: Routing)
+}
+
+/**
+ * RIB 트리의 노드. RIBs-iOS `Router<InteractorType>`를 따른다.
  *
  * 순서(원본과 같음):
- * - attach: [didLoad](처음 한 번) → [willAttach] → Interactor 활성화
- * - detach: Interactor 비활성화 → [willDetach] → 자식 전체 detach
+ * - [attachChild]: 자식 Interactor 활성화 → 자식 하위 트리 활성화 → 자식 [load](처음 한 번 [didLoad])
+ * - [detachChild]: 자식 Interactor 비활성화 → 자식 하위 트리 비활성화 → 목록에서 제거
  *
- * 원본과 다른 점: 같은 인스턴스를 두 번 붙이면 실패하고, 붙어 있지 않은 자식을 떼면 아무 일도 하지 않는다.
- * RIB 이벤트 버스와 누수 감지(RibRefWatcher)는 아직 없다.
- * 생명주기 메서드는 [RibThreadingConfig]에 검사기가 있으면 메인 스레드인지 확인한다(ADR-0007).
+ * 떼어 낸 자식의 하위 트리는 원본처럼 그대로 남고 비활성 상태가 된다. 다시 붙이면 함께 활성화된다.
+ *
+ * 원본과 다른 점: 원본은 Interactor의 활성 스트림을 구독해 하위 트리를 켜고 끄지만, 여기서는
+ * attach/detach/mount에서 직접 처리한다. `deinit` 정리와 누수 감지는 없다. 같은 자식을 두 번 붙이면
+ * 원본의 `assert` 대신 `check`로 실패한다. 생명주기 진입점은 메인 스레드인지 확인한다(ADR-0007).
+ * 상태 복원(ADR-0008)과 [handleBackPress]는 Android 어댑터를 위한 확장이다.
  */
-public abstract class Router<I : InteractorType>(public open val interactor: I) {
+public open class Router<I : Interactable>(public val interactor: I) : Routing {
 
-    private val children = mutableListOf<Router<*>>()
-    private var isLoaded = false
+    final override val interactable: Interactable = interactor
+
+    private val childList = mutableListOf<Routing>()
+    private val lifecycleEvents = MutableSharedFlow<RouterLifecycle>(extraBufferCapacity = 1)
+    private var didLoadFlag = false
     private var savedState: RibState? = null
+
+    final override val children: List<Routing> get() = childList.toList()
+
+    final override val lifecycle: Flow<RouterLifecycle> = lifecycleEvents.asSharedFlow()
 
     /** attach될 때 정해지는 식별자. 자식 저장 상태의 키로 쓴다. */
     public var tag: String? = null
         private set
 
-    init {
-        attachToInteractor()
+    final override fun load() {
+        if (didLoadFlag) return
+        didLoadFlag = true
+        lifecycleEvents.tryEmit(RouterLifecycle.DID_LOAD)
+        didLoad()
     }
 
-    /** Interactor에 이 Router를 연결한다. 원본처럼 하위 클래스에서 바꿀 수 있다. */
-    protected open fun attachToInteractor() {
-        (interactor as? Interactor<*, *>)?.setRouterInternal(this)
-    }
-
-    /** 처음 attach될 때 한 번 호출된다. */
+    /** 처음 [load]될 때 한 번 호출된다. 고정된 자식은 여기서 붙인다. */
     protected open fun didLoad() {}
 
-    /** attach될 때마다 Interactor 활성화 직전에 호출된다. */
-    protected open fun willAttach() {}
-
-    /** detach될 때 Interactor 비활성화 직후, 자식 detach 전에 호출된다. */
-    protected open fun willDetach() {}
-
-    public fun getChildren(): List<Router<*>> = children.toList()
-
-    public open fun handleBackPress(): Boolean = interactor.handleBackPress()
-
-    public fun attachChild(childRouter: Router<*>) {
-        attachChild(childRouter, defaultTag(childRouter))
+    final override fun attachChild(child: Routing) {
+        attachChild(child, defaultTag(child))
     }
 
-    public fun attachChild(childRouter: Router<*>, tag: String) {
+    /** [tag]를 키로 저장 상태를 복원하며 붙인다. 원본에 없는 확장이다. */
+    public fun attachChild(child: Routing, tag: String) {
         checkMainThread("Router.attachChild")
-        check(children.none { it === childRouter }) { "${defaultTag(childRouter)} is already attached" }
-        children += childRouter
-        childRouter.dispatchAttach(childStateFor(tag), tag)
-    }
-
-    public fun detachChild(childRouter: Router<*>) {
-        checkMainThread("Router.detachChild")
-        val removed = children.remove(childRouter)
-        if (!removed) return
-        childRouter.dispatchDetach()
-    }
-
-    public fun dispatchAttach(savedInstanceState: RibState?) {
-        dispatchAttach(savedInstanceState, defaultTag(this))
-    }
-
-    public fun dispatchAttach(savedInstanceState: RibState?, tag: String) {
-        checkMainThread("Router.dispatchAttach")
-        if (!isLoaded) {
-            isLoaded = true
-            didLoad()
+        check(childList.none { it === child }) {
+            "Attempt to attach child: ${defaultTag(child)}, which is already attached to ${defaultTag(this)}."
         }
-        this.savedState = savedInstanceState
-        this.tag = tag
-        willAttach()
-        asInteractor().dispatchAttach(savedInstanceState?.get(KEY_INTERACTOR) as? RibState)
+        childList += child
+        (child as? Router<*>)?.prepare(childStateFor(tag), tag)
+        // 원본과 같이 로드 전에 활성화한다. Router는 보통 didLoad에서 고정 자식을 붙이므로 그 전에 활성이어야 한다.
+        child.setSubtreeActive(true)
+        child.load()
     }
 
-    public fun dispatchDetach() {
-        checkMainThread("Router.dispatchDetach")
-        asInteractor().dispatchDetach()
-        willDetach()
-        children.toList().forEach(::detachChild)
+    final override fun detachChild(child: Routing) {
+        checkMainThread("Router.detachChild")
+        child.setSubtreeActive(false)
+        childList.removeAll { it === child }
     }
 
-    /** 이 Router와 하위 트리의 상태를 저장한다. */
-    public fun saveInstanceStateInternal(): RibState {
-        val childStates = children.associate { child ->
+    /** 뒤로 가기를 처리했으면 true. 기본은 Interactor에 묻는다. 원본 iOS에는 없다. */
+    public open fun handleBackPress(): Boolean = (interactor as? Interactor)?.handleBackPress() ?: false
+
+    /** 이 Router와 하위 트리의 상태를 저장한다. 원본에 없는 확장이다(ADR-0008). */
+    public fun saveInstanceState(): RibState {
+        val childStates = childList.filterIsInstance<Router<*>>().associate { child ->
             val childTag = checkNotNull(child.tag) { "${defaultTag(child)} has no tag" }
-            childTag to child.saveInstanceStateInternal()
+            childTag to child.saveInstanceState()
         }
         return RibState(
             mapOf(
-                KEY_INTERACTOR to asInteractor().saveInstanceState(),
+                KEY_INTERACTOR to ((interactor as? Interactor)?.saveInstanceState() ?: RibState()),
                 KEY_CHILD_ROUTERS to RibState(childStates),
             ),
         )
     }
 
+    internal fun prepare(state: RibState?, tag: String) {
+        savedState = state
+        this.tag = tag
+        (interactor as? Interactor)?.restore(state?.get(KEY_INTERACTOR) as? RibState)
+    }
+
     private fun childStateFor(tag: String): RibState? =
         (savedState?.get(KEY_CHILD_ROUTERS) as? RibState)?.get(tag) as? RibState
-
-    private fun asInteractor(): Interactor<*, *> =
-        checkNotNull(interactor as? Interactor<*, *>) {
-            "${interactor::class.simpleName} must extend Interactor"
-        }
 
     public companion object {
         public const val KEY_CHILD_ROUTERS: String = "Router.childRouters"
         public const val KEY_INTERACTOR: String = "Router.interactor"
 
-        private fun defaultTag(router: Router<*>): String = router::class.simpleName ?: "Router"
+        internal fun defaultTag(routing: Routing): String = routing::class.simpleName ?: "Router"
     }
+}
+
+/** 이 노드부터 전위 순회로 Interactor를 켜거나 끈다. 원본 `setSubtreeActive`와 같은 순서다. */
+internal fun Routing.setSubtreeActive(active: Boolean) {
+    if (active && !interactable.isActive) interactable.activate()
+    if (!active && interactable.isActive) interactable.deactivate()
+    children.forEach { it.setSubtreeActive(active) }
 }

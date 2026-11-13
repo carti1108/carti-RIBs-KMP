@@ -82,7 +82,7 @@ class BuilderTest {
         val counter: Counter,
         val step: Int,
         @Suppress("unused") val listener: ChildListener,
-    ) : Interactor<Unit, ChildRouter>(Unit)
+    ) : Interactor()
 
     private class ChildRouter(interactor: ChildInteractor) : Router<ChildInteractor>(interactor)
 

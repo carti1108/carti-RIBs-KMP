@@ -31,14 +31,14 @@ class LifecycleScopeTest {
 
     @Test
     fun interactorScope_usesMainImmediateDispatcher() {
-        val interactor = SampleInteractor().also { it.dispatchAttach(null) }
+        val interactor = SampleInteractor().also { it.activate() }
 
         assertSame(testDispatcher, interactor.coroutineScope.coroutineContext[kotlin.coroutines.ContinuationInterceptor])
     }
 
     @Test
     fun interactorScope_isNamedAfterClass() {
-        val interactor = SampleInteractor().also { it.dispatchAttach(null) }
+        val interactor = SampleInteractor().also { it.activate() }
 
         assertEquals("SampleInteractor", interactor.coroutineScope.coroutineContext[CoroutineName]?.name)
     }
@@ -47,51 +47,40 @@ class LifecycleScopeTest {
     fun interactorScope_usesConfiguredExceptionHandler() {
         val caught = mutableListOf<Throwable>()
         RibCoroutinesConfig.exceptionHandler = CoroutineExceptionHandler { _, e -> caught += e }
-        val interactor = SampleInteractor().also { it.dispatchAttach(null) }
+        val interactor = SampleInteractor().also { it.activate() }
 
         interactor.coroutineScope.launch { throw IllegalArgumentException("boom") }
 
         assertEquals(listOf("boom"), caught.map { it.message })
-        assertTrue(interactor.isAttached())
+        assertTrue(interactor.isActive)
     }
 
     @Test
-    fun interactorScope_beforeAttach_throwsLifecycleNotStarted() {
+    fun interactorScope_beforeActivate_throwsLifecycleNotStarted() {
         assertFailsWith<LifecycleNotStartedException> { SampleInteractor().coroutineScope }
     }
 
     @Test
-    fun interactorScope_afterDetach_throwsLifecycleEnded() {
+    fun interactorScope_afterDeactivate_throwsLifecycleEnded() {
         val interactor = SampleInteractor()
-        interactor.dispatchAttach(null)
-        interactor.dispatchDetach()
+        interactor.activate()
+        interactor.deactivate()
 
         assertFailsWith<LifecycleEndedException> { interactor.coroutineScope }
     }
 
     @Test
-    fun interactorScope_afterDetach_withFailSilently_returnsCancelledScope() {
+    fun interactorScope_afterDeactivate_withFailSilently_returnsCancelledScope() {
         RibCoroutinesConfig.shouldCoroutineScopeFailSilentlyOnLifecycleEnded = true
         val interactor = SampleInteractor()
-        interactor.dispatchAttach(null)
-        interactor.dispatchDetach()
+        interactor.activate()
+        interactor.deactivate()
 
         val scope = interactor.coroutineScope
 
         assertTrue(scope.coroutineContext[Job]?.isCancelled == true)
     }
 
-    @Test
-    fun presenterScope_afterUnload_throwsLifecycleEnded() {
-        val presenter = SamplePresenter()
-        presenter.dispatchLoad()
-        presenter.dispatchUnload()
 
-        val error = assertFailsWith<LifecycleEndedException> { presenter.coroutineScope }
-        assertIs<IllegalStateException>(error)
-    }
-
-    private class SampleInteractor : Interactor<Unit, Router<*>>(Unit)
-
-    private class SamplePresenter : Presenter()
+    private class SampleInteractor : Interactor()
 }

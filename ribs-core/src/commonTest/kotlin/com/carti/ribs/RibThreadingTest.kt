@@ -30,10 +30,10 @@ class RibThreadingTest {
         onMainThread = false
         val parent = node()
 
-        parent.dispatchAttach(null)
+        parent.mount()
         parent.attachChild(node())
 
-        assertTrue(parent.interactor.isAttached())
+        assertTrue(parent.interactor.isActive)
     }
 
     @Test
@@ -42,24 +42,24 @@ class RibThreadingTest {
         val parent = node()
         val child = node()
 
-        parent.dispatchAttach(null)
+        val mount = parent.mount()
         parent.attachChild(child)
         parent.detachChild(child)
-        parent.dispatchDetach()
+        mount.unmount()
 
-        assertFalse(parent.interactor.isAttached())
+        assertFalse(parent.interactor.isActive)
     }
 
     @Test
-    fun checkerOffMainThread_failsDispatchAttachWithoutChangingState() {
+    fun checkerOffMainThread_failsMountWithoutChangingState() {
         installChecker()
         onMainThread = false
         val router = node()
 
-        val error = assertFailsWith<IllegalStateException> { router.dispatchAttach(null) }
+        val error = assertFailsWith<IllegalStateException> { router.mount() }
 
-        assertEquals("Router.dispatchAttach must be called on the main thread", error.message)
-        assertFalse(router.interactor.isAttached())
+        assertEquals("Router.mount must be called on the main thread", error.message)
+        assertFalse(router.interactor.isActive)
     }
 
     @Test
@@ -67,14 +67,14 @@ class RibThreadingTest {
         installChecker()
         val parent = node()
         val child = node()
-        parent.dispatchAttach(null)
+        val mount = parent.mount()
         parent.attachChild(child)
         onMainThread = false
 
         assertFailsWith<IllegalStateException> { parent.attachChild(node()) }
         assertFailsWith<IllegalStateException> { parent.detachChild(child) }
-        assertFailsWith<IllegalStateException> { parent.dispatchDetach() }
-        assertTrue(child.interactor.isAttached())
+        assertFailsWith<IllegalStateException> { mount.unmount() }
+        assertTrue(child.interactor.isActive)
     }
 
     @Test
@@ -93,6 +93,6 @@ class RibThreadingTest {
 
     private fun node(): Router<PlainInteractor> = PlainRouter(PlainInteractor())
 
-    private class PlainInteractor : Interactor<Unit, Router<*>>(Unit)
+    private class PlainInteractor : Interactor()
     private class PlainRouter(interactor: PlainInteractor) : Router<PlainInteractor>(interactor)
 }
