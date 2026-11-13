@@ -2,17 +2,17 @@ package com.carti.ribs.samples.login
 
 import com.carti.ribs.Builder
 import com.carti.ribs.Dependency
-import com.carti.ribs.Interactor
-import com.carti.ribs.RibState
+import com.carti.ribs.PresentableInteractor
+import com.carti.ribs.Presentable
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.ViewRouter
+import com.carti.ribs.ViewableRouter
 
 interface TodoDetailPresentableListener {
     fun didTapToggleDone()
     fun didTapBack()
 }
 
-interface TodoDetailPresentable : ViewControllable {
+interface TodoDetailPresentable : Presentable, ViewControllable {
     var listener: TodoDetailPresentableListener?
     fun showTodo(title: String, isDone: Boolean)
 }
@@ -33,7 +33,7 @@ class TodoDetailBuilder(dependency: TodoDetailDependency) : Builder<TodoDetailDe
         if (dependency.todoStore.find(todoId) == null) return null
         val view = dependency.viewFactory.makeTodoDetailView()
         val interactor = TodoDetailInteractor(view, todoId, dependency.todoStore, listener)
-        return TodoDetailRouter(view, interactor, todoId)
+        return TodoDetailRouter(interactor, view, todoId)
     }
 }
 
@@ -43,8 +43,8 @@ class TodoDetailInteractor(
     private val todoId: Long,
     private val todoStore: TodoStore,
     private val listener: TodoDetailListener,
-) : Interactor<TodoDetailPresentable, TodoDetailRouter>(presenter), TodoDetailPresentableListener {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
+) : PresentableInteractor<TodoDetailPresentable>(presenter), TodoDetailPresentableListener {
+    override fun didBecomeActive() {
         presenter.listener = this
         render()
     }
@@ -66,5 +66,5 @@ class TodoDetailInteractor(
     }
 }
 
-class TodoDetailRouter(view: TodoDetailPresentable, interactor: TodoDetailInteractor, val todoId: Long) :
-    ViewRouter<TodoDetailPresentable, TodoDetailInteractor>(view, interactor)
+class TodoDetailRouter(interactor: TodoDetailInteractor, view: TodoDetailPresentable, val todoId: Long) :
+    ViewableRouter<TodoDetailInteractor, TodoDetailPresentable>(interactor, view)

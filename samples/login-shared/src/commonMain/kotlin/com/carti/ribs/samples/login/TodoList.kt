@@ -2,10 +2,10 @@ package com.carti.ribs.samples.login
 
 import com.carti.ribs.Builder
 import com.carti.ribs.Dependency
-import com.carti.ribs.Interactor
-import com.carti.ribs.RibState
+import com.carti.ribs.PresentableInteractor
+import com.carti.ribs.Presentable
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.ViewRouter
+import com.carti.ribs.ViewableRouter
 import com.carti.ribs.checkMainThread
 import kotlinx.coroutines.launch
 
@@ -13,7 +13,7 @@ interface TodoListPresentableListener {
     fun didTapTodo(id: Long)
 }
 
-interface TodoListPresentable : ViewControllable {
+interface TodoListPresentable : Presentable, ViewControllable {
     var listener: TodoListPresentableListener?
     fun showTodos(todos: List<Todo>)
 }
@@ -30,7 +30,7 @@ interface TodoListListener {
 class TodoListBuilder(dependency: TodoListDependency) : Builder<TodoListDependency>(dependency) {
     fun build(listener: TodoListListener): TodoListRouter {
         val view = dependency.viewFactory.makeTodoListView()
-        return TodoListRouter(view, TodoListInteractor(view, dependency.todoStore, listener))
+        return TodoListRouter(TodoListInteractor(view, dependency.todoStore, listener), view)
     }
 }
 
@@ -39,8 +39,8 @@ class TodoListInteractor(
     presenter: TodoListPresentable,
     private val todoStore: TodoStore,
     private val listener: TodoListListener,
-) : Interactor<TodoListPresentable, TodoListRouter>(presenter), TodoListPresentableListener {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
+) : PresentableInteractor<TodoListPresentable>(presenter), TodoListPresentableListener {
+    override fun didBecomeActive() {
         presenter.listener = this
         coroutineScope.launch {
             todoStore.todos.collect { todos ->
@@ -57,5 +57,5 @@ class TodoListInteractor(
     override fun didTapTodo(id: Long) = listener.didSelectTodo(id)
 }
 
-class TodoListRouter(view: TodoListPresentable, interactor: TodoListInteractor) :
-    ViewRouter<TodoListPresentable, TodoListInteractor>(view, interactor)
+class TodoListRouter(interactor: TodoListInteractor, view: TodoListPresentable) :
+    ViewableRouter<TodoListInteractor, TodoListPresentable>(interactor, view)

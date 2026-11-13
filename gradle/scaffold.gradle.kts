@@ -62,10 +62,10 @@ package $pkg
 
 import com.carti.ribs.Builder
 import com.carti.ribs.Dependency
-import com.carti.ribs.Interactor
-import com.carti.ribs.RibState
+import com.carti.ribs.Presentable
+import com.carti.ribs.PresentableInteractor
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.ViewRouter
+import com.carti.ribs.ViewableRouter
 
 /** 뷰 → 공유 코드: 사용자 입력. */
 interface ${n}PresentableListener {
@@ -73,7 +73,7 @@ interface ${n}PresentableListener {
 }
 
 /** 공유 코드 → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 부른다(ADR-0007). */
-interface ${n}Presentable : ViewControllable {
+interface ${n}Presentable : Presentable, ViewControllable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: ${n}PresentableListener?
     fun showTitle(title: String)
@@ -92,15 +92,18 @@ interface ${n}Listener {
 class ${n}Builder(dependency: ${n}Dependency) : Builder<${n}Dependency>(dependency) {
     fun build(listener: ${n}Listener): ${n}Router {
         val view = dependency.make${n}View()
-        return ${n}Router(view, ${n}Interactor(view, listener))
+        return ${n}Router(${n}Interactor(view, listener), view)
     }
 }
 
 class ${n}Interactor(
     presenter: ${n}Presentable,
     private val listener: ${n}Listener,
-) : Interactor<${n}Presentable, ${n}Router>(presenter), ${n}PresentableListener {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
+) : PresentableInteractor<${n}Presentable>(presenter), ${n}PresentableListener {
+    /** Router가 만들어질 때 자신을 넣는다(RIBs-iOS 템플릿과 같음). */
+    var router: ${n}Router? = null
+
+    override fun didBecomeActive() {
         presenter.listener = this
         presenter.showTitle("$n")
     }
@@ -112,8 +115,12 @@ class ${n}Interactor(
     override fun didTapClose() = listener.didRequestClose$n()
 }
 
-class ${n}Router(view: ${n}Presentable, interactor: ${n}Interactor) :
-    ViewRouter<${n}Presentable, ${n}Interactor>(view, interactor)
+class ${n}Router(interactor: ${n}Interactor, view: ${n}Presentable) :
+    ViewableRouter<${n}Interactor, ${n}Presentable>(interactor, view) {
+    init {
+        interactor.router = this
+    }
+}
 """.trimStart()
 
 fun ribTest(n: String, pkg: String): String = """
@@ -121,6 +128,7 @@ package $pkg
 
 import com.carti.ribs.RibCoroutinesConfig
 import com.carti.ribs.RibDispatchersProvider
+import com.carti.ribs.mount
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -145,14 +153,14 @@ class ${n}InteractorTest {
     }
 
     @Test
-    fun attachShowsTitleAndDetachClearsListener() {
+    fun activateShowsTitleAndDeactivateClearsListener() {
         val view = Fake${n}View()
         val router = ${n}Builder(FakeDependency(view)).build(FakeListener())
 
-        router.dispatchAttach(null)
+        val mount = router.mount()
         assertEquals("$n", view.title)
 
-        router.dispatchDetach()
+        mount.unmount()
         assertNull(view.listener)
     }
 
@@ -160,7 +168,7 @@ class ${n}InteractorTest {
     fun closeTapIsForwardedToParent() {
         val view = Fake${n}View()
         val listener = FakeListener()
-        ${n}Builder(FakeDependency(view)).build(listener).dispatchAttach(null)
+        ${n}Builder(FakeDependency(view)).build(listener).mount()
 
         view.listener?.didTapClose()
 

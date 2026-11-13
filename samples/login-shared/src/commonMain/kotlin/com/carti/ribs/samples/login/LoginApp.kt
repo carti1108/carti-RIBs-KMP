@@ -21,7 +21,7 @@ class LoginApp(viewFactory: LoginViewFactory, authService: AuthService) {
     }
 
     /** 플랫폼 상태 저장소에 넣을 문자열(ADR-0008). */
-    fun saveState(): String = router.saveInstanceStateInternal().encodeToString()
+    fun saveState(): String = router.saveInstanceState().encodeToString()
 
     /** 시스템 뒤로 가기. 트리가 처리하면 true, 아니면 플랫폼 기본 동작을 따른다. */
     fun handleBackPress(): Boolean = router.handleBackPress()

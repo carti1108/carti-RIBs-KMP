@@ -1,8 +1,7 @@
 package com.carti.ribs.web
 
 import com.carti.ribs.Interactor
-import com.carti.ribs.Router
-import com.carti.ribs.ViewRouter
+import com.carti.ribs.ViewableRouter
 import com.carti.ribs.mount
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -61,7 +60,7 @@ class ScreenSlotTest {
         assertEquals(0, calls)
     }
 
-    // RIB 생명주기와 함께: mount는 attach 후 보여 주고, unmount는 detach 후 숨긴다
+    // RIB 생명주기와 함께: mount는 보여 준 뒤 활성화하고, unmount는 비활성화 후 숨긴다
     @Test
     fun mountAndUnmount_followRouterLifecycle() {
         val slot = ScreenSlot()
@@ -70,13 +69,13 @@ class ScreenSlotTest {
 
         val mount = router.mount(slot)
         assertSame(view, slot.getSnapshot()?.view)
-        assertEquals(true, router.interactor.isAttached())
+        assertEquals(true, router.interactor.isActive)
 
         mount.unmount()
         assertNull(slot.getSnapshot())
-        assertEquals(false, router.interactor.isAttached())
+        assertEquals(false, router.interactor.isActive)
     }
 
-    private class TestInteractor : Interactor<Unit, Router<*>>(Unit)
-    private class TestRouter(view: FakeView) : ViewRouter<WebViewControllable, TestInteractor>(view, TestInteractor())
+    private class TestInteractor : Interactor()
+    private class TestRouter(view: FakeView) : ViewableRouter<TestInteractor, WebViewControllable>(TestInteractor(), view)
 }

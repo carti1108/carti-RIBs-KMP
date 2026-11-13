@@ -61,7 +61,7 @@ class LoginAppTest {
         loggedOut().listener?.didTapLogin("   ")
         runCurrent()
 
-        assertEquals(LoggedOutPresenter.EMPTY_NAME_ERROR, loggedOut().error)
+        assertEquals(LoggedOutInteractor.EMPTY_NAME_ERROR, loggedOut().error)
         assertEquals(emptyList(), auth.requests)
     }
 
