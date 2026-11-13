@@ -20,7 +20,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | M6 | 할 일 목록·상세 스택, 결과 전달, 세션 Worker, `RibState` 저장·복원(ADR-0008), `newRib` 스캐폴딩 | 완료 |
 | - | Android(Compose) 샘플, iOS와 같은 흐름 | 완료 (에뮬레이터 UI 테스트로 확인) |
 | M7 | 브라우저 대상, `ribs-web` 어댑터(ADR-0009), React 샘플 | 완료 (Chrome Headless·Vitest로 확인) |
-| M8 | 원본을 RIBs-iOS로 전환(ADR-0010): `activate`/`deactivate`, `PresentableInteractor`, `ViewableRouter`, `Router.load`, `Worker`, `ComponentizedBuilder` | 완료 (JVM, JS, Android). iOS 빌드는 Mac 확인 필요 |
+| M8 | 원본을 RIBs-iOS로 전환(ADR-0010): `activate`/`deactivate`, `PresentableInteractor`, `ViewableRouter`, `Router.load`, `Worker`, `ComponentizedBuilder` | 완료 (JVM, JS, Android, iOS 시뮬레이터 UI 테스트로 확인) |
 
 ## 빠른 시작
 
