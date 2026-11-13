@@ -5,7 +5,7 @@ import SwiftUI
 /// 로그인 상태 RIB의 뷰. 머리말과 자식 RIB 화면(목록·상세) 하나를 그린다.
 @MainActor
 @Observable
-final class LoggedInScreen: NSObject, @preconcurrency LoggedInPresentable, SwiftUIRenderable {
+final class LoggedInScreen: NSObject, @preconcurrency LoggedInViewContract, SwiftUIRenderable {
     @ObservationIgnored weak var listener: (any LoggedInPresentableListener)?
     private(set) var userName = ""
     private(set) var sessionSeconds: Int64 = 0

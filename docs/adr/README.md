@@ -26,7 +26,7 @@
 
 | 번호 | 제목 | 상태 | 날짜 |
 |---|---|---|---|
-| [ADR-0001](ADR-0001-uber-ribs-android-as-reference.md) | Uber RIBs Android를 원본으로 삼는다 | 채택 | 2026-11-09 |
+| [ADR-0001](ADR-0001-uber-ribs-android-as-reference.md) | Uber RIBs Android를 원본으로 삼는다 | 대체됨 (→ ADR-0010) | 2026-11-09 |
 | [ADR-0002](ADR-0002-coroutines-instead-of-rx.md) | Rx 대신 코루틴/Flow를 쓴다 | 채택 | 2026-11-09 |
 | [ADR-0003](ADR-0003-manual-component-di.md) | 수동 Component/Dependency로 DI한다 | 채택 | 2026-11-09 |
 | [ADR-0004](ADR-0004-opaque-view-controllable.md) | 공유 코드는 불투명한 ViewControllable만 안다 | 채택 | 2026-11-09 |
@@ -34,3 +34,5 @@
 | [ADR-0006](ADR-0006-swift-bridge-via-view-interfaces.md) | Swift 연동은 뷰 인터페이스 호출로 하고 Flow 브리지 도구를 쓰지 않는다 | 채택 | 2026-11-10 |
 | [ADR-0007](ADR-0007-injected-main-thread-check.md) | 메인 스레드 검사는 플랫폼이 주입한 검사기로 생명주기 진입점에서 한다 | 채택 | 2026-11-10 |
 | [ADR-0008](ADR-0008-ribstate-string-encoding.md) | RibState는 허용 타입을 제한하고 문자열 하나로 저장한다 | 채택 | 2026-11-10 |
+| [ADR-0009](ADR-0009-web-bridge-via-kotlin-view-store.md) | 웹(React) 연동은 Kotlin이 뷰 인터페이스를 구현하고 화면 상태 저장소를 내보낸다 | 채택 | 2026-11-12 |
+| [ADR-0010](ADR-0010-uber-ribs-ios-as-reference.md) | Uber RIBs-iOS를 원본으로 삼는다 | 채택 | 2026-11-13 |

@@ -62,26 +62,32 @@ package $pkg
 
 import com.carti.ribs.Builder
 import com.carti.ribs.Dependency
-import com.carti.ribs.Interactor
-import com.carti.ribs.RibState
+import com.carti.ribs.Presentable
+import com.carti.ribs.PresentableInteractor
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.ViewRouter
+import com.carti.ribs.ViewableRouter
 
 /** 뷰 → 공유 코드: 사용자 입력. */
 interface ${n}PresentableListener {
     fun didTapClose()
 }
 
-/** 공유 코드 → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 부른다(ADR-0007). */
-interface ${n}Presentable : ViewControllable {
+/** Interactor → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 부른다(ADR-0007). */
+interface ${n}Presentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: ${n}PresentableListener?
     fun showTitle(title: String)
 }
 
+/** Router → 뷰. 자식 화면을 붙일 때 메서드를 추가한다. */
+interface ${n}ViewControllable : ViewControllable
+
+/** 플랫폼 뷰 하나가 구현하는 묶음. Interactor는 [${n}Presentable]로, Router는 [${n}ViewControllable]로만 본다. */
+interface ${n}ViewContract : ${n}Presentable, ${n}ViewControllable
+
 /** 부모가 제공해야 하는 것. */
 interface ${n}Dependency : Dependency {
-    fun make${n}View(): ${n}Presentable
+    fun make${n}View(): ${n}ViewContract
 }
 
 /** 자식 → 부모: 사용자 의도로 표현한다. 라우팅은 부모가 정한다. */
@@ -92,15 +98,18 @@ interface ${n}Listener {
 class ${n}Builder(dependency: ${n}Dependency) : Builder<${n}Dependency>(dependency) {
     fun build(listener: ${n}Listener): ${n}Router {
         val view = dependency.make${n}View()
-        return ${n}Router(view, ${n}Interactor(view, listener))
+        return ${n}Router(${n}Interactor(view, listener), view)
     }
 }
 
 class ${n}Interactor(
     presenter: ${n}Presentable,
     private val listener: ${n}Listener,
-) : Interactor<${n}Presentable, ${n}Router>(presenter), ${n}PresentableListener {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
+) : PresentableInteractor<${n}Presentable>(presenter), ${n}PresentableListener {
+    /** Router가 만들어질 때 자신을 넣는다(RIBs-iOS 템플릿과 같음). */
+    var router: ${n}Router? = null
+
+    override fun didBecomeActive() {
         presenter.listener = this
         presenter.showTitle("$n")
     }
@@ -112,8 +121,12 @@ class ${n}Interactor(
     override fun didTapClose() = listener.didRequestClose$n()
 }
 
-class ${n}Router(view: ${n}Presentable, interactor: ${n}Interactor) :
-    ViewRouter<${n}Presentable, ${n}Interactor>(view, interactor)
+class ${n}Router(interactor: ${n}Interactor, view: ${n}ViewControllable) :
+    ViewableRouter<${n}Interactor, ${n}ViewControllable>(interactor, view) {
+    init {
+        interactor.router = this
+    }
+}
 """.trimStart()
 
 fun ribTest(n: String, pkg: String): String = """
@@ -121,6 +134,7 @@ package $pkg
 
 import com.carti.ribs.RibCoroutinesConfig
 import com.carti.ribs.RibDispatchersProvider
+import com.carti.ribs.mount
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -145,14 +159,14 @@ class ${n}InteractorTest {
     }
 
     @Test
-    fun attachShowsTitleAndDetachClearsListener() {
+    fun activateShowsTitleAndDeactivateClearsListener() {
         val view = Fake${n}View()
         val router = ${n}Builder(FakeDependency(view)).build(FakeListener())
 
-        router.dispatchAttach(null)
+        val mount = router.mount()
         assertEquals("$n", view.title)
 
-        router.dispatchDetach()
+        mount.unmount()
         assertNull(view.listener)
     }
 
@@ -160,21 +174,21 @@ class ${n}InteractorTest {
     fun closeTapIsForwardedToParent() {
         val view = Fake${n}View()
         val listener = FakeListener()
-        ${n}Builder(FakeDependency(view)).build(listener).dispatchAttach(null)
+        ${n}Builder(FakeDependency(view)).build(listener).mount()
 
         view.listener?.didTapClose()
 
         assertTrue(listener.closeRequested)
     }
 
-    private class Fake${n}View : ${n}Presentable {
+    private class Fake${n}View : ${n}ViewContract {
         override var listener: ${n}PresentableListener? = null
         var title: String? = null
         override fun showTitle(title: String) { this.title = title }
     }
 
-    private class FakeDependency(private val view: ${n}Presentable) : ${n}Dependency {
-        override fun make${n}View(): ${n}Presentable = view
+    private class FakeDependency(private val view: ${n}ViewContract) : ${n}Dependency {
+        override fun make${n}View(): ${n}ViewContract = view
     }
 
     private class FakeListener : ${n}Listener {
@@ -199,7 +213,7 @@ import SwiftUI
 /// ${n} RIB의 뷰. 상태는 공유 코드가 넘기고, 입력은 `listener`로 돌려준다.
 @MainActor
 @Observable
-final class ${n}Screen: NSObject, @preconcurrency ${n}Presentable, SwiftUIRenderable {
+final class ${n}Screen: NSObject, @preconcurrency ${n}ViewContract, SwiftUIRenderable {
     @ObservationIgnored weak var listener: (any ${n}PresentableListener)?
     private(set) var title = ""
 
@@ -238,11 +252,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import com.carti.ribs.compose.ComposeRenderable
-import $pkg.${n}Presentable
+import $pkg.${n}ViewContract
 import $pkg.${n}PresentableListener
 
 /** ${n} RIB의 뷰. */
-class ${n}Screen : ${n}Presentable, ComposeRenderable {
+class ${n}Screen : ${n}ViewContract, ComposeRenderable {
     override var listener: ${n}PresentableListener? = null
     private var title: String by mutableStateOf("")
 

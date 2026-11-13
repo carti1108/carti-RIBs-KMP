@@ -15,3 +15,8 @@ Derived/
 
 # 데몬 JDK를 고정하지 않는다(Mac·Windows가 서로 다른 JBR을 쓴다)
 gradle/gradle-daemon-jvm.properties
+
+# 웹 샘플(React)
+node_modules/
+samples/web-login/react/dist/
+.vite/

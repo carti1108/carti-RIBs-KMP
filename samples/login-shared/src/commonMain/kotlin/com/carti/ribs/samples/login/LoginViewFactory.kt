@@ -6,8 +6,8 @@ package com.carti.ribs.samples.login
  */
 interface LoginViewFactory {
     fun makeRootView(): RootViewControllable
-    fun makeLoggedOutView(): LoggedOutPresentable
-    fun makeLoggedInView(): LoggedInPresentable
-    fun makeTodoListView(): TodoListPresentable
-    fun makeTodoDetailView(): TodoDetailPresentable
+    fun makeLoggedOutView(): LoggedOutViewContract
+    fun makeLoggedInView(): LoggedInViewContract
+    fun makeTodoListView(): TodoListViewContract
+    fun makeTodoDetailView(): TodoDetailViewContract
 }

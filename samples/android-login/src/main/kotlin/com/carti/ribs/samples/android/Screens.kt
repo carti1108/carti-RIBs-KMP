@@ -25,16 +25,16 @@ import com.carti.ribs.ViewControllable
 import com.carti.ribs.compose.ComposeRenderable
 import com.carti.ribs.compose.ComposeScreenSlot
 import com.carti.ribs.compose.RibSlot
-import com.carti.ribs.samples.login.LoggedInPresentable
+import com.carti.ribs.samples.login.LoggedInViewContract
 import com.carti.ribs.samples.login.LoggedInPresentableListener
-import com.carti.ribs.samples.login.LoggedOutPresentable
+import com.carti.ribs.samples.login.LoggedOutViewContract
 import com.carti.ribs.samples.login.LoggedOutPresentableListener
 import com.carti.ribs.samples.login.LoginViewFactory
 import com.carti.ribs.samples.login.RootViewControllable
 import com.carti.ribs.samples.login.Todo
-import com.carti.ribs.samples.login.TodoDetailPresentable
+import com.carti.ribs.samples.login.TodoDetailViewContract
 import com.carti.ribs.samples.login.TodoDetailPresentableListener
-import com.carti.ribs.samples.login.TodoListPresentable
+import com.carti.ribs.samples.login.TodoListViewContract
 import com.carti.ribs.samples.login.TodoListPresentableListener
 
 /** 테스트와 화면이 같이 쓰는 태그. iOS 샘플의 accessibilityIdentifier와 이름을 맞췄다. */
@@ -55,10 +55,10 @@ object Tags {
 /** 공유 코드가 RIB마다 요청하는 뷰를 Compose 구현으로 만든다. */
 class ComposeViewFactory : LoginViewFactory {
     override fun makeRootView(): RootViewControllable = RootScreen()
-    override fun makeLoggedOutView(): LoggedOutPresentable = LoggedOutScreen()
-    override fun makeLoggedInView(): LoggedInPresentable = LoggedInScreen()
-    override fun makeTodoListView(): TodoListPresentable = TodoListScreen()
-    override fun makeTodoDetailView(): TodoDetailPresentable = TodoDetailScreen()
+    override fun makeLoggedOutView(): LoggedOutViewContract = LoggedOutScreen()
+    override fun makeLoggedInView(): LoggedInViewContract = LoggedInScreen()
+    override fun makeTodoListView(): TodoListViewContract = TodoListScreen()
+    override fun makeTodoDetailView(): TodoDetailViewContract = TodoDetailScreen()
 }
 
 /** 루트 RIB의 뷰. 자식 RIB 화면 하나를 보여 준다. */
@@ -77,7 +77,7 @@ class RootScreen : RootViewControllable, ComposeRenderable {
  * 로그아웃 상태 RIB의 뷰. 상태는 공유 코드가 `showError`·`showLoading`으로 넘기고, 입력은 `listener`로 돌려준다.
  * GC 환경이라 iOS처럼 listener를 약한 참조로 둘 필요가 없다.
  */
-class LoggedOutScreen : LoggedOutPresentable, ComposeRenderable {
+class LoggedOutScreen : LoggedOutViewContract, ComposeRenderable {
     override var listener: LoggedOutPresentableListener? = null
     private var errorMessage: String? by mutableStateOf(null)
     private var isLoading: Boolean by mutableStateOf(false)
@@ -119,7 +119,7 @@ class LoggedOutScreen : LoggedOutPresentable, ComposeRenderable {
 }
 
 /** 로그인 상태 RIB의 뷰. 머리말과 자식 RIB 화면(목록·상세) 하나를 그린다. */
-class LoggedInScreen : LoggedInPresentable, ComposeRenderable {
+class LoggedInScreen : LoggedInViewContract, ComposeRenderable {
     override var listener: LoggedInPresentableListener? = null
     private var userName: String by mutableStateOf("")
     private var sessionSeconds: Long by mutableLongStateOf(0)
@@ -156,7 +156,7 @@ class LoggedInScreen : LoggedInPresentable, ComposeRenderable {
 }
 
 /** 할 일 목록 RIB의 뷰. */
-class TodoListScreen : TodoListPresentable, ComposeRenderable {
+class TodoListScreen : TodoListViewContract, ComposeRenderable {
     override var listener: TodoListPresentableListener? = null
     private var todos: List<Todo> by mutableStateOf(emptyList())
 
@@ -178,7 +178,7 @@ class TodoListScreen : TodoListPresentable, ComposeRenderable {
 }
 
 /** 할 일 상세 RIB의 뷰. 화면 안 뒤로 버튼과 시스템 뒤로 가기가 같은 결과(상세 닫기)를 낸다. */
-class TodoDetailScreen : TodoDetailPresentable, ComposeRenderable {
+class TodoDetailScreen : TodoDetailViewContract, ComposeRenderable {
     override var listener: TodoDetailPresentableListener? = null
     private var title: String by mutableStateOf("")
     private var isDone: Boolean by mutableStateOf(false)

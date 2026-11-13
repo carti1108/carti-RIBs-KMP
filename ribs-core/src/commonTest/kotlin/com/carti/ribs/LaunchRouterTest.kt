@@ -25,13 +25,13 @@ class LaunchRouterTest {
     }
 
     @Test
-    fun launch_attachesRootThenShowsView() {
+    fun launch_showsViewThenActivatesThenLoads() {
         val root = rootRouter()
 
         root.launch(RecordingHost(log))
 
-        assertEquals(listOf("root.didBecomeActive", "host.show(root)"), log)
-        assertTrue(root.interactor.isAttached())
+        assertEquals(listOf("host.show(root)", "root.didBecomeActive", "root.didLoad"), log)
+        assertTrue(root.interactor.isActive)
     }
 
     @Test
@@ -43,9 +43,9 @@ class LaunchRouterTest {
     }
 
     @Test
-    fun shutdown_detachesWholeTreeThenHidesView() {
+    fun shutdown_deactivatesWholeTreeThenHidesView() {
         val root = rootRouter()
-        val child = TestViewRouter(FakeView("child"), TestInteractor("child", log))
+        val child = TestViewRouter(TestInteractor("child", log), FakeView("child"))
         root.launch(RecordingHost(log))
         root.attachChild(child)
         log.clear()
@@ -56,7 +56,7 @@ class LaunchRouterTest {
             listOf("root.willResignActive", "child.willResignActive", "host.hide(root)"),
             log,
         )
-        assertFalse(child.interactor.isAttached())
+        assertFalse(child.interactor.isActive)
     }
 
     @Test
@@ -74,18 +74,18 @@ class LaunchRouterTest {
 
     @Test
     fun mount_embedsSubtreeIntoNonRibHost() {
-        val router = TestViewRouter(FakeView("embedded"), TestInteractor("embedded", log))
+        val router = TestViewRouter(TestInteractor("embedded", log), FakeView("embedded"))
 
         val mount = router.mount(RecordingHost(log))
 
         assertTrue(mount.isMounted)
-        assertTrue(router.interactor.isAttached())
-        assertEquals(listOf("embedded.didBecomeActive", "host.show(embedded)"), log)
+        assertTrue(router.interactor.isActive)
+        assertEquals(listOf("host.show(embedded)", "embedded.didBecomeActive", "embedded.didLoad"), log)
     }
 
     @Test
     fun unmount_isIdempotent() {
-        val router = TestViewRouter(FakeView("embedded"), TestInteractor("embedded", log))
+        val router = TestViewRouter(TestInteractor("embedded", log), FakeView("embedded"))
         val mount = router.mount(RecordingHost(log))
         mount.unmount()
         log.clear()
@@ -97,24 +97,24 @@ class LaunchRouterTest {
     }
 
     @Test
-    fun mount_routerWithoutView_attachesOnly() {
+    fun mount_routerWithoutView_activatesOnly() {
         val router = PlainRouter(TestInteractor("plain", log))
 
         val mount = router.mount()
         mount.unmount()
 
-        assertEquals(listOf("plain.didBecomeActive", "plain.willResignActive"), log)
+        assertEquals(listOf("plain.didBecomeActive", "plain.didLoad", "plain.willResignActive"), log)
     }
 
     @Test
-    fun mount_alreadyAttachedRouter_fails() {
-        val router = TestViewRouter(FakeView("x"), TestInteractor("x", log))
+    fun mount_alreadyActiveRouter_fails() {
+        val router = TestViewRouter(TestInteractor("x", log), FakeView("x"))
         router.mount(RecordingHost(log))
 
         assertFailsWith<IllegalStateException> { router.mount(RecordingHost(log)) }
     }
 
-    private fun rootRouter() = TestLaunchRouter(FakeView("root"), TestInteractor("root", log))
+    private fun rootRouter() = TestLaunchRouter(TestInteractor("root", log), FakeView("root"))
 
     private class FakeView(val name: String) : ViewControllable
 
@@ -129,10 +129,10 @@ class LaunchRouterTest {
     }
 
     private class TestInteractor(
-        private val name: String,
-        private val log: MutableList<String>,
-    ) : Interactor<Unit, Router<*>>(Unit) {
-        override fun didBecomeActive(savedInstanceState: RibState?) {
+        val name: String,
+        val log: MutableList<String>,
+    ) : Interactor() {
+        override fun didBecomeActive() {
             log += "$name.didBecomeActive"
         }
 
@@ -141,11 +141,23 @@ class LaunchRouterTest {
         }
     }
 
-    private class TestLaunchRouter(view: FakeView, interactor: TestInteractor) :
-        LaunchRouter<FakeView, TestInteractor>(view, interactor)
+    private class TestLaunchRouter(interactor: TestInteractor, view: FakeView) :
+        LaunchRouter<TestInteractor, FakeView>(interactor, view) {
+        override fun didLoad() {
+            interactor.log += "${interactor.name}.didLoad"
+        }
+    }
 
-    private class TestViewRouter(view: FakeView, interactor: TestInteractor) :
-        ViewRouter<FakeView, TestInteractor>(view, interactor)
+    private class TestViewRouter(interactor: TestInteractor, view: FakeView) :
+        ViewableRouter<TestInteractor, FakeView>(interactor, view) {
+        override fun didLoad() {
+            interactor.log += "${interactor.name}.didLoad"
+        }
+    }
 
-    private class PlainRouter(interactor: TestInteractor) : Router<TestInteractor>(interactor)
+    private class PlainRouter(interactor: TestInteractor) : Router<TestInteractor>(interactor) {
+        override fun didLoad() {
+            interactor.log += "${interactor.name}.didLoad"
+        }
+    }
 }

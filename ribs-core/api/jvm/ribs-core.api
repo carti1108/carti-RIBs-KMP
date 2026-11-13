@@ -1,17 +1,22 @@
-public abstract interface class com/carti/ribs/BindWorkerHandle {
-	public abstract fun getBindJob ()Lkotlinx/coroutines/Job;
-	public abstract fun unbind ()Lkotlinx/coroutines/Job;
+public abstract interface class com/carti/ribs/Buildable {
 }
 
-public abstract class com/carti/ribs/Builder {
-	public fun <init> (Lcom/carti/ribs/Dependency;)V
-	protected final fun getDependency ()Lcom/carti/ribs/Dependency;
+public abstract class com/carti/ribs/Builder : com/carti/ribs/Buildable {
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun getDependency ()Ljava/lang/Object;
 }
 
-public class com/carti/ribs/Component {
-	public fun <init> (Lcom/carti/ribs/Dependency;)V
-	public final fun getDependency ()Lcom/carti/ribs/Dependency;
+public class com/carti/ribs/Component : com/carti/ribs/Dependency {
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun getDependency ()Ljava/lang/Object;
 	protected final fun shared (Lkotlin/jvm/functions/Function0;)Lkotlin/Lazy;
+}
+
+public abstract class com/carti/ribs/ComponentizedBuilder : com/carti/ribs/Buildable {
+	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+	public final fun build (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+	public final fun buildComponentAndRouter (Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
+	protected abstract fun buildRouter (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/carti/ribs/DefaultRibDispatchers : com/carti/ribs/RibDispatchersProvider {
@@ -25,48 +30,55 @@ public final class com/carti/ribs/DefaultRibDispatchers : com/carti/ribs/RibDisp
 public abstract interface class com/carti/ribs/Dependency {
 }
 
-public final class com/carti/ribs/EmptyComponent : com/carti/ribs/EmptyDependency {
+public class com/carti/ribs/EmptyComponent : com/carti/ribs/EmptyDependency {
 	public fun <init> ()V
 }
 
 public abstract interface class com/carti/ribs/EmptyDependency : com/carti/ribs/Dependency {
 }
 
-public class com/carti/ribs/EmptyPresenter : com/carti/ribs/Presenter {
-	public fun <init> ()V
+public abstract interface class com/carti/ribs/Interactable : com/carti/ribs/InteractorScope {
+	public abstract fun activate ()V
+	public abstract fun deactivate ()V
 }
 
-public abstract class com/carti/ribs/Interactor : com/carti/ribs/InteractorType {
-	public fun <init> (Ljava/lang/Object;)V
-	protected fun didBecomeActive (Lcom/carti/ribs/RibState;)V
+public class com/carti/ribs/Interactor : com/carti/ribs/Interactable {
+	public fun <init> ()V
+	public final fun activate ()V
+	public final fun deactivate ()V
+	protected fun didBecomeActive ()V
 	public final fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
-	public final fun getLifecycle ()Lkotlinx/coroutines/flow/SharedFlow;
-	public final fun getPresenter ()Ljava/lang/Object;
-	public final fun getRouter ()Lcom/carti/ribs/Router;
+	protected final fun getSavedInstanceState ()Lcom/carti/ribs/RibState;
 	public fun handleBackPress ()Z
-	public final fun isAttached ()Z
+	public final fun isActive ()Z
+	public final fun isActiveStream ()Lkotlinx/coroutines/flow/StateFlow;
 	protected fun onSaveInstanceState (Ljava/util/Map;)V
 	protected fun willResignActive ()V
 }
 
-public final class com/carti/ribs/InteractorEvent : java/lang/Enum {
-	public static final field ACTIVE Lcom/carti/ribs/InteractorEvent;
-	public static final field INACTIVE Lcom/carti/ribs/InteractorEvent;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lcom/carti/ribs/InteractorEvent;
-	public static fun values ()[Lcom/carti/ribs/InteractorEvent;
+public final class com/carti/ribs/InteractorKt {
+	public static final fun confineTo (Lkotlinx/coroutines/flow/Flow;Lcom/carti/ribs/InteractorScope;)Lkotlinx/coroutines/flow/Flow;
 }
 
-public abstract interface class com/carti/ribs/InteractorType {
-	public abstract fun handleBackPress ()Z
-	public abstract fun isAttached ()Z
+public abstract interface class com/carti/ribs/InteractorScope {
+	public abstract fun isActive ()Z
+	public abstract fun isActiveStream ()Lkotlinx/coroutines/flow/StateFlow;
 }
 
-public abstract class com/carti/ribs/LaunchRouter : com/carti/ribs/ViewRouter {
-	public fun <init> (Lcom/carti/ribs/ViewControllable;Lcom/carti/ribs/InteractorType;)V
+public class com/carti/ribs/LaunchRouter : com/carti/ribs/ViewableRouter, com/carti/ribs/LaunchRouting {
+	public fun <init> (Lcom/carti/ribs/Interactable;Lcom/carti/ribs/ViewControllable;)V
 	public final fun launch (Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;)V
-	public static synthetic fun launch$default (Lcom/carti/ribs/LaunchRouter;Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;ILjava/lang/Object;)V
 	public final fun shutdown ()V
+}
+
+public abstract interface class com/carti/ribs/LaunchRouting : com/carti/ribs/ViewableRouting {
+	public abstract fun launch (Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;)V
+	public static synthetic fun launch$default (Lcom/carti/ribs/LaunchRouting;Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;ILjava/lang/Object;)V
+	public abstract fun shutdown ()V
+}
+
+public final class com/carti/ribs/LaunchRouting$DefaultImpls {
+	public static synthetic fun launch$default (Lcom/carti/ribs/LaunchRouting;Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;ILjava/lang/Object;)V
 }
 
 public final class com/carti/ribs/LifecycleEndedException : java/lang/IllegalStateException {
@@ -81,39 +93,17 @@ public abstract interface class com/carti/ribs/MainThreadChecker {
 	public abstract fun isMainThread ()Z
 }
 
-public abstract class com/carti/ribs/Presenter {
-	public fun <init> ()V
-	protected fun didLoad ()V
-	public final fun dispatchLoad ()V
-	public final fun dispatchUnload ()V
-	public final fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
-	public fun getLifecycleFlow ()Lkotlinx/coroutines/flow/SharedFlow;
-	protected final fun isLoaded ()Z
-	protected fun willUnload ()V
+public abstract interface class com/carti/ribs/Presentable {
 }
 
-public final class com/carti/ribs/PresenterEvent : java/lang/Enum {
-	public static final field LOADED Lcom/carti/ribs/PresenterEvent;
-	public static final field UNLOADED Lcom/carti/ribs/PresenterEvent;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lcom/carti/ribs/PresenterEvent;
-	public static fun values ()[Lcom/carti/ribs/PresenterEvent;
+public class com/carti/ribs/PresentableInteractor : com/carti/ribs/Interactor {
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun getPresenter ()Ljava/lang/Object;
 }
 
-public abstract interface class com/carti/ribs/RibCoroutineWorker {
-	public abstract fun onStart (Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun onStop (Ljava/lang/Throwable;)V
-}
-
-public final class com/carti/ribs/RibCoroutineWorker$DefaultImpls {
-	public static fun onStop (Lcom/carti/ribs/RibCoroutineWorker;Ljava/lang/Throwable;)V
-}
-
-public final class com/carti/ribs/RibCoroutineWorkerKt {
-	public static final fun bind (Lkotlinx/coroutines/CoroutineScope;Lcom/carti/ribs/RibCoroutineWorker;Lkotlin/coroutines/CoroutineContext;)Lcom/carti/ribs/BindWorkerHandle;
-	public static final fun bind (Lkotlinx/coroutines/CoroutineScope;Ljava/lang/Iterable;Lkotlin/coroutines/CoroutineContext;)V
-	public static synthetic fun bind$default (Lkotlinx/coroutines/CoroutineScope;Lcom/carti/ribs/RibCoroutineWorker;Lkotlin/coroutines/CoroutineContext;ILjava/lang/Object;)Lcom/carti/ribs/BindWorkerHandle;
-	public static synthetic fun bind$default (Lkotlinx/coroutines/CoroutineScope;Ljava/lang/Iterable;Lkotlin/coroutines/CoroutineContext;ILjava/lang/Object;)V
+public class com/carti/ribs/Presenter : com/carti/ribs/Presentable {
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun getViewController ()Ljava/lang/Object;
 }
 
 public final class com/carti/ribs/RibCoroutinesConfig {
@@ -149,9 +139,9 @@ public final class com/carti/ribs/RibMount {
 
 public final class com/carti/ribs/RibMountKt {
 	public static final fun mount (Lcom/carti/ribs/Router;Lcom/carti/ribs/RibState;)Lcom/carti/ribs/RibMount;
-	public static final fun mount (Lcom/carti/ribs/ViewRouter;Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;)Lcom/carti/ribs/RibMount;
+	public static final fun mount (Lcom/carti/ribs/ViewableRouter;Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;)Lcom/carti/ribs/RibMount;
 	public static synthetic fun mount$default (Lcom/carti/ribs/Router;Lcom/carti/ribs/RibState;ILjava/lang/Object;)Lcom/carti/ribs/RibMount;
-	public static synthetic fun mount$default (Lcom/carti/ribs/ViewRouter;Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;ILjava/lang/Object;)Lcom/carti/ribs/RibMount;
+	public static synthetic fun mount$default (Lcom/carti/ribs/ViewableRouter;Lcom/carti/ribs/ViewHost;Lcom/carti/ribs/RibState;ILjava/lang/Object;)Lcom/carti/ribs/RibMount;
 }
 
 public final class com/carti/ribs/RibState {
@@ -188,29 +178,53 @@ public final class com/carti/ribs/Ribs {
 	public static final field VERSION Ljava/lang/String;
 }
 
-public abstract class com/carti/ribs/Router {
+public class com/carti/ribs/Router : com/carti/ribs/Routing {
 	public static final field Companion Lcom/carti/ribs/Router$Companion;
 	public static final field KEY_CHILD_ROUTERS Ljava/lang/String;
 	public static final field KEY_INTERACTOR Ljava/lang/String;
-	public fun <init> (Lcom/carti/ribs/InteractorType;)V
-	public final fun attachChild (Lcom/carti/ribs/Router;)V
-	public final fun attachChild (Lcom/carti/ribs/Router;Ljava/lang/String;)V
-	protected fun attachToInteractor ()V
-	public final fun detachChild (Lcom/carti/ribs/Router;)V
+	public fun <init> (Lcom/carti/ribs/Interactable;)V
+	public final fun attachChild (Lcom/carti/ribs/Routing;)V
+	public final fun attachChild (Lcom/carti/ribs/Routing;Ljava/lang/String;)V
+	public final fun detachChild (Lcom/carti/ribs/Routing;)V
 	protected fun didLoad ()V
-	public final fun dispatchAttach (Lcom/carti/ribs/RibState;)V
-	public final fun dispatchAttach (Lcom/carti/ribs/RibState;Ljava/lang/String;)V
-	public final fun dispatchDetach ()V
 	public final fun getChildren ()Ljava/util/List;
-	public fun getInteractor ()Lcom/carti/ribs/InteractorType;
+	public final fun getInteractable ()Lcom/carti/ribs/Interactable;
+	public final fun getInteractor ()Lcom/carti/ribs/Interactable;
+	public final fun getLifecycle ()Lkotlinx/coroutines/flow/Flow;
 	public final fun getTag ()Ljava/lang/String;
 	public fun handleBackPress ()Z
-	public final fun saveInstanceStateInternal ()Lcom/carti/ribs/RibState;
-	protected fun willAttach ()V
-	protected fun willDetach ()V
+	public final fun load ()V
+	public final fun saveInstanceState ()Lcom/carti/ribs/RibState;
 }
 
 public final class com/carti/ribs/Router$Companion {
+}
+
+public final class com/carti/ribs/RouterLifecycle : java/lang/Enum {
+	public static final field DID_LOAD Lcom/carti/ribs/RouterLifecycle;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/carti/ribs/RouterLifecycle;
+	public static fun values ()[Lcom/carti/ribs/RouterLifecycle;
+}
+
+public abstract interface class com/carti/ribs/RouterScope {
+	public abstract fun getLifecycle ()Lkotlinx/coroutines/flow/Flow;
+}
+
+public abstract interface class com/carti/ribs/Routing : com/carti/ribs/RouterScope {
+	public abstract fun attachChild (Lcom/carti/ribs/Routing;)V
+	public abstract fun detachChild (Lcom/carti/ribs/Routing;)V
+	public abstract fun getChildren ()Ljava/util/List;
+	public abstract fun getInteractable ()Lcom/carti/ribs/Interactable;
+	public abstract fun load ()V
+}
+
+public abstract class com/carti/ribs/SimpleComponentizedBuilder : com/carti/ribs/ComponentizedBuilder {
+	public fun <init> (Lkotlin/jvm/functions/Function0;)V
+	public final fun build ()Ljava/lang/Object;
+	protected abstract fun buildRouter (Ljava/lang/Object;)Ljava/lang/Object;
+	public synthetic fun buildRouter (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+	protected final fun buildRouter (Ljava/lang/Object;Lkotlin/Unit;)Ljava/lang/Object;
 }
 
 public abstract interface class com/carti/ribs/ViewControllable {
@@ -221,13 +235,31 @@ public abstract interface class com/carti/ribs/ViewHost {
 	public abstract fun show (Lcom/carti/ribs/ViewControllable;)V
 }
 
-public abstract class com/carti/ribs/ViewPresenter : com/carti/ribs/Presenter {
-	public fun <init> (Lcom/carti/ribs/ViewControllable;)V
-	public final fun getView ()Lcom/carti/ribs/ViewControllable;
+public class com/carti/ribs/ViewableRouter : com/carti/ribs/Router, com/carti/ribs/ViewableRouting {
+	public fun <init> (Lcom/carti/ribs/Interactable;Lcom/carti/ribs/ViewControllable;)V
+	public final fun getViewControllable ()Lcom/carti/ribs/ViewControllable;
+	public final fun getViewController ()Lcom/carti/ribs/ViewControllable;
 }
 
-public abstract class com/carti/ribs/ViewRouter : com/carti/ribs/Router {
-	public fun <init> (Lcom/carti/ribs/ViewControllable;Lcom/carti/ribs/InteractorType;)V
-	public final fun getView ()Lcom/carti/ribs/ViewControllable;
+public abstract interface class com/carti/ribs/ViewableRouting : com/carti/ribs/Routing {
+	public abstract fun getViewControllable ()Lcom/carti/ribs/ViewControllable;
+}
+
+public class com/carti/ribs/Worker : com/carti/ribs/Working {
+	public fun <init> ()V
+	protected fun didStart (Lcom/carti/ribs/InteractorScope;)V
+	protected fun didStop ()V
+	public final fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
+	public final fun isStarted ()Z
+	public final fun isStartedStream ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun start (Lcom/carti/ribs/InteractorScope;)V
+	public final fun stop ()V
+}
+
+public abstract interface class com/carti/ribs/Working {
+	public abstract fun isStarted ()Z
+	public abstract fun isStartedStream ()Lkotlinx/coroutines/flow/StateFlow;
+	public abstract fun start (Lcom/carti/ribs/InteractorScope;)V
+	public abstract fun stop ()V
 }
 

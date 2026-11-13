@@ -1,16 +1,18 @@
 package com.carti.ribs
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
+/** RIBs-iOS `RouterTests`를 옮기고 순서·상태 복원 테스트를 더했다. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RouterTest {
     private val log = mutableListOf<String>()
@@ -26,48 +28,56 @@ class RouterTest {
     }
 
     @Test
-    fun constructor_linksRouterToInteractor() {
+    fun load_emitsDidLoadOnce() = runTest(UnconfinedTestDispatcher()) {
         val router = node("a")
+        val events = mutableListOf<RouterLifecycle>()
+        backgroundScope.launch { router.lifecycle.collect { events += it } }
 
-        assertSame(router, router.interactor.router)
+        router.load()
+        router.load()
+
+        assertEquals(listOf(RouterLifecycle.DID_LOAD), events)
+        assertEquals(listOf("a.didLoad"), log)
     }
 
     @Test
-    fun dispatchAttach_callsDidLoadThenWillAttachThenActivatesInteractor() {
-        val router = node("a")
-
-        router.dispatchAttach(null)
-
-        assertEquals(listOf("a.didLoad", "a.willAttach", "a.didBecomeActive"), log)
-        assertTrue(router.interactor.isAttached())
-    }
-
-    @Test
-    fun dispatchAttach_secondTime_doesNotCallDidLoadAgain() {
-        val router = node("a")
-        router.dispatchAttach(null)
-        router.dispatchDetach()
-        log.clear()
-
-        router.dispatchAttach(null)
-
-        assertEquals(listOf("a.willAttach", "a.didBecomeActive"), log)
-    }
-
-    @Test
-    fun attachChild_addsChildAndActivatesIt() {
-        val parent = attachedNode("p")
-        val child = node("c")
+    fun attachChild_activatesChildThenLoadsIt() {
+        val parent = node("p")
+        val child = MockRouting()
 
         parent.attachChild(child)
 
-        assertEquals(listOf<Router<*>>(child), parent.getChildren())
-        assertTrue(child.interactor.isAttached())
+        assertEquals(1, parent.children.size)
+        assertEquals(1, child.mockInteractable.activateCount)
+        assertEquals(1, child.loadCount)
+    }
+
+    @Test
+    fun attachChild_ordersActivationBeforeDidLoad() {
+        val parent = node("p")
+
+        parent.attachChild(node("c"))
+
+        assertEquals(listOf("c.didBecomeActive", "c.didLoad"), log)
+    }
+
+    @Test
+    fun attachChild_activatesSubtreeOfTheChild() {
+        val parent = node("p")
+        val child = node("c")
+        val grandChild = MockRouting()
+        child.attachChild(grandChild)
+        grandChild.mockInteractable.deactivate()
+
+        parent.attachChild(child)
+
+        assertTrue(grandChild.mockInteractable.isActive)
+        assertEquals(1, grandChild.loadCount)
     }
 
     @Test
     fun attachChild_sameInstanceTwice_fails() {
-        val parent = attachedNode("p")
+        val parent = node("p")
         val child = node("c")
         parent.attachChild(child)
 
@@ -75,110 +85,90 @@ class RouterTest {
     }
 
     @Test
-    fun attachChild_defaultTagIsClassName_customTagIsKept() {
-        val parent = attachedNode("p")
-        val defaultTagged = node("c1")
-        val customTagged = node("c2")
+    fun detachChild_deactivatesChildAndRemovesIt() {
+        val parent = node("p")
+        val child = MockRouting()
+        parent.attachChild(child)
 
-        parent.attachChild(defaultTagged)
-        parent.attachChild(customTagged, "custom")
+        parent.detachChild(child)
 
-        assertEquals(TestRouter::class.simpleName, defaultTagged.tag)
-        assertEquals("custom", customTagged.tag)
+        assertTrue(parent.children.isEmpty())
+        assertEquals(1, child.mockInteractable.deactivateCount)
     }
 
     @Test
-    fun detachChild_deactivatesInteractorThenCallsWillDetach() {
-        val parent = attachedNode("p")
+    fun detachChild_deactivatesSubtreeInPreOrderAndKeepsIt() {
+        val parent = node("p")
         val child = node("c")
+        val grandChild = node("g")
         parent.attachChild(child)
+        child.attachChild(grandChild)
         log.clear()
 
         parent.detachChild(child)
 
-        assertEquals(listOf("c.willResignActive", "c.willDetach"), log)
-        assertTrue(parent.getChildren().isEmpty())
-        assertFalse(child.interactor.isAttached())
+        assertEquals(listOf("c.willResignActive", "g.willResignActive"), log)
+        assertEquals(1, child.children.size)
+        assertFalse(grandChild.interactor.isActive)
     }
 
     @Test
-    fun detachChild_unknownChild_isNoOp() {
-        val parent = attachedNode("p")
-        val stranger = node("s")
-        log.clear()
-
-        parent.detachChild(stranger)
-
-        assertTrue(log.isEmpty())
-    }
-
-    @Test
-    fun dispatchDetach_detachesSelfFirstThenWholeSubtree() {
-        val root = attachedNode("r")
+    fun reattachChild_reactivatesKeptSubtreeWithoutReloading() {
+        val parent = node("p")
         val child = node("c")
-        val grandChild = node("g")
-        root.attachChild(child)
-        child.attachChild(grandChild)
+        parent.attachChild(child)
+        child.attachChild(node("g"))
+        parent.detachChild(child)
         log.clear()
 
-        root.dispatchDetach()
+        parent.attachChild(child)
 
-        assertEquals(
-            listOf(
-                "r.willResignActive", "r.willDetach",
-                "c.willResignActive", "c.willDetach",
-                "g.willResignActive", "g.willDetach",
-            ),
-            log,
-        )
-        assertTrue(root.getChildren().isEmpty())
-        assertTrue(child.getChildren().isEmpty())
-        assertFalse(grandChild.interactor.isAttached())
+        assertEquals(listOf("c.didBecomeActive", "g.didBecomeActive"), log)
     }
 
     @Test
-    fun savedState_isRestoredToChildByTag() {
-        val parent = attachedNode("p")
+    fun detachChild_notAttached_doesNothing() {
+        val parent = node("p")
+
+        parent.detachChild(MockRouting())
+
+        assertTrue(parent.children.isEmpty())
+    }
+
+    @Test
+    fun saveInstanceState_restoresInteractorStateByTag() {
+        val parent = node("p")
         val child = node("c")
         parent.attachChild(child, "child")
-        child.interactor.valueToSave = "hello"
-        val saved = parent.saveInstanceStateInternal()
-        parent.dispatchDetach()
+        child.interactor.value = "kept"
+        val saved = parent.saveInstanceState()
 
-        val restoredParent = node("p2")
-        val restoredChild = node("c2")
-        restoredParent.dispatchAttach(saved)
+        val restoredParent = node("p")
+        restoredParent.mount(saved)
+        val restoredChild = node("c")
         restoredParent.attachChild(restoredChild, "child")
 
-        assertEquals("hello", restoredChild.interactor.restoredValue)
+        assertEquals("kept", restoredChild.interactor.restoredValue)
     }
 
     @Test
     fun handleBackPress_delegatesToInteractor() {
-        val router = attachedNode("a")
+        val router = node("a")
         router.interactor.consumesBack = true
 
         assertTrue(router.handleBackPress())
     }
 
-    private fun node(name: String) = TestRouter(name, TestInteractor(name, log), log)
+    private fun node(name: String) = TestRouter(TestInteractor(name, log), name, log)
 
-    private fun attachedNode(name: String) = node(name).also {
-        it.dispatchAttach(null)
-        log.clear()
-    }
-
-    private class TestInteractor(
-        private val name: String,
-        private val log: MutableList<String>,
-    ) : Interactor<Unit, TestRouter>(Unit) {
+    private class TestInteractor(private val name: String, private val log: MutableList<String>) : Interactor() {
+        var value: String? = null
+        var restoredValue: String? = null
         var consumesBack = false
-        var valueToSave: String? = null
-        var restoredValue: Any? = null
 
-        override fun didBecomeActive(savedInstanceState: RibState?) {
+        override fun didBecomeActive() {
             log += "$name.didBecomeActive"
-            restoredValue = savedInstanceState?.get(KEY_VALUE)
+            restoredValue = savedInstanceState?.get(KEY_VALUE) as? String
         }
 
         override fun willResignActive() {
@@ -186,27 +176,49 @@ class RouterTest {
         }
 
         override fun onSaveInstanceState(outState: MutableMap<String, Any?>) {
-            outState[KEY_VALUE] = valueToSave
+            outState[KEY_VALUE] = value
         }
 
         override fun handleBackPress(): Boolean = consumesBack
     }
 
     private class TestRouter(
-        private val name: String,
         interactor: TestInteractor,
+        private val name: String,
         private val log: MutableList<String>,
     ) : Router<TestInteractor>(interactor) {
         override fun didLoad() {
             log += "$name.didLoad"
         }
+    }
 
-        override fun willAttach() {
-            log += "$name.willAttach"
+    /** 원본 테스트의 `RoutingMock`/`InteractableMock`처럼 호출 횟수만 센다. */
+    private class MockRouting : Routing {
+        val mockInteractable = MockInteractable()
+        var loadCount = 0
+        override val interactable: Interactable get() = mockInteractable
+        override val children: List<Routing> = emptyList()
+        override val lifecycle = kotlinx.coroutines.flow.emptyFlow<RouterLifecycle>()
+        override fun load() {
+            loadCount++
         }
+        override fun attachChild(child: Routing) = Unit
+        override fun detachChild(child: Routing) = Unit
+    }
 
-        override fun willDetach() {
-            log += "$name.willDetach"
+    private class MockInteractable : Interactable {
+        var activateCount = 0
+        var deactivateCount = 0
+        private val state = kotlinx.coroutines.flow.MutableStateFlow(false)
+        override val isActive: Boolean get() = state.value
+        override val isActiveStream = state
+        override fun activate() {
+            activateCount++
+            state.value = true
+        }
+        override fun deactivate() {
+            deactivateCount++
+            state.value = false
         }
     }
 

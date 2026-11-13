@@ -5,7 +5,6 @@ import com.carti.ribs.Component
 import com.carti.ribs.Dependency
 import com.carti.ribs.Interactor
 import com.carti.ribs.LaunchRouter
-import com.carti.ribs.RibState
 import com.carti.ribs.ViewControllable
 
 /** 루트 뷰 계약. 자식 RIB 화면 하나를 보여 준다. 플랫폼이 구현한다(ADR-0006). */
@@ -29,8 +28,8 @@ class RootBuilder(dependency: RootDependency) : Builder<RootDependency>(dependen
     fun build(): RootRouter {
         val component = RootComponent(dependency)
         return RootRouter(
-            view = dependency.viewFactory.makeRootView(),
             interactor = RootInteractor(),
+            view = dependency.viewFactory.makeRootView(),
             loggedOutBuilder = LoggedOutBuilder(component),
             loggedInBuilder = LoggedInBuilder(component),
         )
@@ -38,12 +37,14 @@ class RootBuilder(dependency: RootDependency) : Builder<RootDependency>(dependen
 }
 
 /** 저장 상태: 로그인한 사용자 이름. 되살릴 때 이름이 있으면 로그인 화면을 건너뛴다. */
-class RootInteractor : Interactor<Unit, RootRouter>(Unit), LoggedOutListener, LoggedInListener {
+class RootInteractor : Interactor(), LoggedOutListener, LoggedInListener {
+    /** Router가 만들어질 때 자신을 넣는다(RIBs-iOS 템플릿과 같음). */
+    var router: RootRouter? = null
     private var userName: String? = null
 
-    override fun didBecomeActive(savedInstanceState: RibState?) {
+    override fun didBecomeActive() {
         val restoredUser = savedInstanceState?.get(KEY_USER_NAME) as? String
-        if (restoredUser != null) didLogin(restoredUser) else router.routeToLoggedOut()
+        if (restoredUser != null) didLogin(restoredUser) else router?.routeToLoggedOut()
     }
 
     override fun onSaveInstanceState(outState: MutableMap<String, Any?>) {
@@ -52,14 +53,14 @@ class RootInteractor : Interactor<Unit, RootRouter>(Unit), LoggedOutListener, Lo
 
     override fun didLogin(userName: String) {
         this.userName = userName
-        router.routeAwayFromLoggedOut()
-        router.routeToLoggedIn(userName)
+        router?.routeAwayFromLoggedOut()
+        router?.routeToLoggedIn(userName)
     }
 
     override fun didRequestLogout() {
         userName = null
-        router.routeAwayFromLoggedIn()
-        router.routeToLoggedOut()
+        router?.routeAwayFromLoggedIn()
+        router?.routeToLoggedOut()
     }
 
     private companion object {
@@ -68,13 +69,17 @@ class RootInteractor : Interactor<Unit, RootRouter>(Unit), LoggedOutListener, Lo
 }
 
 class RootRouter(
-    view: RootViewControllable,
     interactor: RootInteractor,
+    view: RootViewControllable,
     private val loggedOutBuilder: LoggedOutBuilder,
     private val loggedInBuilder: LoggedInBuilder,
-) : LaunchRouter<RootViewControllable, RootInteractor>(view, interactor) {
+) : LaunchRouter<RootInteractor, RootViewControllable>(interactor, view) {
     private var loggedOut: LoggedOutRouter? = null
     private var loggedIn: LoggedInRouter? = null
+
+    init {
+        interactor.router = this
+    }
 
     /** 자식에게 먼저 맡긴다. 아무도 처리하지 않으면 false라서 플랫폼 기본 동작을 따른다. */
     override fun handleBackPress(): Boolean = loggedIn?.handleBackPress() ?: false
@@ -83,14 +88,14 @@ class RootRouter(
         if (loggedOut != null) return
         val child = loggedOutBuilder.build(interactor)
         attachChild(child)
-        view.showScreen(child.view)
+        viewController.showScreen(child.viewController)
         loggedOut = child
     }
 
     fun routeAwayFromLoggedOut() {
         val child = loggedOut ?: return
         detachChild(child)
-        view.hideScreen(child.view)
+        viewController.hideScreen(child.viewController)
         loggedOut = null
     }
 
@@ -98,14 +103,14 @@ class RootRouter(
         if (loggedIn != null) return
         val child = loggedInBuilder.build(interactor, userName)
         attachChild(child)
-        view.showScreen(child.view)
+        viewController.showScreen(child.viewController)
         loggedIn = child
     }
 
     fun routeAwayFromLoggedIn() {
         val child = loggedIn ?: return
         detachChild(child)
-        view.hideScreen(child.view)
+        viewController.hideScreen(child.viewController)
         loggedIn = null
     }
 }

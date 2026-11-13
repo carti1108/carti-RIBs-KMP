@@ -2,20 +2,26 @@ package com.carti.ribs.samples.login
 
 import com.carti.ribs.Builder
 import com.carti.ribs.Dependency
-import com.carti.ribs.Interactor
-import com.carti.ribs.RibState
+import com.carti.ribs.PresentableInteractor
+import com.carti.ribs.Presentable
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.ViewRouter
+import com.carti.ribs.ViewableRouter
 
 interface TodoDetailPresentableListener {
     fun didTapToggleDone()
     fun didTapBack()
 }
 
-interface TodoDetailPresentable : ViewControllable {
+interface TodoDetailPresentable : Presentable {
     var listener: TodoDetailPresentableListener?
     fun showTodo(title: String, isDone: Boolean)
 }
+
+/** Router → 뷰. 붙일 자식 화면이 없어 비어 있다. RIBs-iOS 템플릿의 `TodoDetailViewControllable`. */
+interface TodoDetailViewControllable : ViewControllable
+
+/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [TodoDetailPresentable]로, Router는 [TodoDetailViewControllable]로만 본다. */
+interface TodoDetailViewContract : TodoDetailPresentable, TodoDetailViewControllable
 
 interface TodoDetailDependency : Dependency {
     val viewFactory: LoginViewFactory
@@ -33,7 +39,7 @@ class TodoDetailBuilder(dependency: TodoDetailDependency) : Builder<TodoDetailDe
         if (dependency.todoStore.find(todoId) == null) return null
         val view = dependency.viewFactory.makeTodoDetailView()
         val interactor = TodoDetailInteractor(view, todoId, dependency.todoStore, listener)
-        return TodoDetailRouter(view, interactor, todoId)
+        return TodoDetailRouter(interactor, view, todoId)
     }
 }
 
@@ -43,8 +49,8 @@ class TodoDetailInteractor(
     private val todoId: Long,
     private val todoStore: TodoStore,
     private val listener: TodoDetailListener,
-) : Interactor<TodoDetailPresentable, TodoDetailRouter>(presenter), TodoDetailPresentableListener {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
+) : PresentableInteractor<TodoDetailPresentable>(presenter), TodoDetailPresentableListener {
+    override fun didBecomeActive() {
         presenter.listener = this
         render()
     }
@@ -66,5 +72,5 @@ class TodoDetailInteractor(
     }
 }
 
-class TodoDetailRouter(view: TodoDetailPresentable, interactor: TodoDetailInteractor, val todoId: Long) :
-    ViewRouter<TodoDetailPresentable, TodoDetailInteractor>(view, interactor)
+class TodoDetailRouter(interactor: TodoDetailInteractor, view: TodoDetailViewControllable, val todoId: Long) :
+    ViewableRouter<TodoDetailInteractor, TodoDetailViewControllable>(interactor, view)

@@ -1,8 +1,8 @@
 package com.carti.ribs
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -10,19 +10,17 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
+/** RIBs-iOS `InteractorTests`를 옮긴 테스트. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class InteractorTest {
-    private val testDispatcher = UnconfinedTestDispatcher()
 
     @BeforeTest
     fun setUp() {
-        RibCoroutinesConfig.dispatchers = TestRibDispatchers(testDispatcher)
+        RibCoroutinesConfig.dispatchers = TestRibDispatchers(UnconfinedTestDispatcher())
     }
 
     @AfterTest
@@ -31,128 +29,122 @@ class InteractorTest {
     }
 
     @Test
-    fun dispatchAttach_callsDidBecomeActiveWithSavedState() {
-        val interactor = RecordingInteractor()
-        val state = RibState(mapOf("key" to "value"))
+    fun interactorIsInactiveByDefault() {
+        val interactor = CountingInteractor()
 
-        interactor.dispatchAttach(state)
-
-        assertTrue(interactor.isAttached())
-        assertEquals(listOf("didBecomeActive"), interactor.calls)
-        assertSame(state, interactor.receivedState)
+        assertFalse(interactor.isActive)
+        assertFalse(interactor.isActiveStream.value)
     }
 
     @Test
-    fun dispatchDetach_callsWillResignActiveAndReturnsPresenter() {
-        val interactor = RecordingInteractor()
-        interactor.dispatchAttach(null)
+    fun isActive_whenActivated_isTrue() {
+        val interactor = CountingInteractor()
 
-        val presenter = interactor.dispatchDetach()
+        interactor.activate()
 
-        assertFalse(interactor.isAttached())
-        assertEquals(listOf("didBecomeActive", "willResignActive"), interactor.calls)
-        assertSame(interactor.presenter, presenter)
+        assertTrue(interactor.isActive)
+        assertTrue(interactor.isActiveStream.value)
     }
 
     @Test
-    fun dispatchAttach_whenAlreadyAttached_fails() {
-        val interactor = RecordingInteractor()
-        interactor.dispatchAttach(null)
+    fun isActive_whenDeactivated_isFalse() {
+        val interactor = CountingInteractor()
+        interactor.activate()
 
-        assertFailsWith<IllegalStateException> { interactor.dispatchAttach(null) }
+        interactor.deactivate()
+
+        assertFalse(interactor.isActive)
+        assertFalse(interactor.isActiveStream.value)
     }
 
     @Test
-    fun dispatchDetach_whenNotAttached_fails() {
-        val interactor = RecordingInteractor()
+    fun didBecomeActive_isNotCalledWhenAlreadyActive() {
+        val interactor = CountingInteractor()
+        interactor.activate()
 
-        assertFailsWith<IllegalStateException> { interactor.dispatchDetach() }
+        interactor.activate()
+
+        assertEquals(1, interactor.didBecomeActiveCount)
     }
 
     @Test
-    fun lifecycle_emitsActiveThenInactive() = runTest(testDispatcher) {
-        val interactor = RecordingInteractor()
-        val events = mutableListOf<InteractorEvent>()
-        backgroundScope.launch { interactor.lifecycle.collect { events += it } }
+    fun willResignActive_isNotCalledWhenAlreadyInactive() {
+        val interactor = CountingInteractor()
+        interactor.deactivate()
+        interactor.activate()
+        interactor.deactivate()
 
-        interactor.dispatchAttach(null)
-        interactor.dispatchDetach()
+        interactor.deactivate()
 
-        assertEquals(listOf(InteractorEvent.ACTIVE, InteractorEvent.INACTIVE), events)
-    }
-
-    @Test
-    fun lifecycle_replaysLatestEventToLateSubscriber() = runTest(testDispatcher) {
-        val interactor = RecordingInteractor()
-        interactor.dispatchAttach(null)
-        val events = mutableListOf<InteractorEvent>()
-
-        backgroundScope.launch { interactor.lifecycle.collect { events += it } }
-
-        assertEquals(listOf(InteractorEvent.ACTIVE), events)
+        assertEquals(1, interactor.willResignActiveCount)
     }
 
     @Test
     fun coroutineScope_isCancelledAfterWillResignActive() {
-        val interactor = RecordingInteractor()
-        interactor.dispatchAttach(null)
-        val job = interactor.coroutineScope.launch { awaitCancellation() }
+        val log = mutableListOf<String>()
+        val interactor = object : Interactor() {
+            override fun didBecomeActive() {
+                coroutineScope.launch {
+                    try {
+                        awaitCancellation()
+                    } finally {
+                        log += "cancelled"
+                    }
+                }
+            }
 
-        interactor.dispatchDetach()
+            override fun willResignActive() {
+                log += "willResignActive"
+            }
+        }
+        interactor.activate()
 
-        assertTrue(interactor.jobWasActiveDuringWillResign == true)
-        assertTrue(job.isCancelled)
+        interactor.deactivate()
+
+        assertEquals(listOf("willResignActive", "cancelled"), log)
     }
 
     @Test
-    fun coroutineScope_whenNotAttached_fails() {
-        val interactor = RecordingInteractor()
+    fun confineTo_emitsOnlyWhileInteractorIsActive() = runTest(UnconfinedTestDispatcher()) {
+        val interactor = CountingInteractor()
+        val source = MutableSharedFlow<Int>()
+        val emitted = mutableListOf<Int>()
+        backgroundScope.launch { source.confineTo(interactor).collect { emitted += it } }
 
-        assertFailsWith<IllegalStateException> { interactor.coroutineScope }
+        source.emit(1)
+        assertEquals(emptyList(), emitted)
+
+        interactor.activate()
+        source.emit(2)
+
+        // 원본(combineLatest)처럼 활성화 순간 마지막 값을 다시 내보낸다.
+        assertEquals(listOf(1, 2), emitted)
     }
 
     @Test
-    fun coroutineScope_isRecreatedOnReattach() {
-        val interactor = RecordingInteractor()
-        interactor.dispatchAttach(null)
-        val first = interactor.coroutineScope
-        interactor.dispatchDetach()
+    fun presentableInteractor_keepsPresenter() {
+        val presenter = object : Presentable {}
 
-        interactor.dispatchAttach(null)
-        val second = interactor.coroutineScope
+        val interactor = PresentableInteractor(presenter)
 
-        assertNotSame(first, second)
-        assertTrue(second.coroutineContext[Job]?.isActive == true)
-    }
-
-    @Test
-    fun router_whenNotSet_fails() {
-        val interactor = RecordingInteractor()
-
-        assertFailsWith<IllegalStateException> { interactor.router }
+        assertSame(presenter, interactor.presenter)
     }
 
     @Test
     fun handleBackPress_defaultsToFalse() {
-        assertFalse(RecordingInteractor().handleBackPress())
+        assertFalse(CountingInteractor().handleBackPress())
     }
 
-    private class FakePresenter
+    private class CountingInteractor : Interactor() {
+        var didBecomeActiveCount = 0
+        var willResignActiveCount = 0
 
-    private class RecordingInteractor :
-        Interactor<FakePresenter, Router<RecordingInteractor>>(FakePresenter()) {
-        val calls = mutableListOf<String>()
-        var receivedState: RibState? = null
-        var jobWasActiveDuringWillResign: Boolean? = null
-
-        override fun didBecomeActive(savedInstanceState: RibState?) {
-            calls += "didBecomeActive"
-            receivedState = savedInstanceState
+        override fun didBecomeActive() {
+            didBecomeActiveCount++
         }
 
         override fun willResignActive() {
-            calls += "willResignActive"
-            jobWasActiveDuringWillResign = coroutineScope.coroutineContext[Job]?.isActive
+            willResignActiveCount++
         }
     }
 }

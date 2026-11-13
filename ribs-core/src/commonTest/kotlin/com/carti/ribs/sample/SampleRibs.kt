@@ -4,16 +4,17 @@ import com.carti.ribs.Builder
 import com.carti.ribs.Component
 import com.carti.ribs.Dependency
 import com.carti.ribs.EmptyDependency
+import com.carti.ribs.Interactable
 import com.carti.ribs.Interactor
+import com.carti.ribs.InteractorScope
 import com.carti.ribs.LaunchRouter
-import com.carti.ribs.Presenter
-import com.carti.ribs.RibCoroutineWorker
-import com.carti.ribs.RibState
+import com.carti.ribs.Presentable
+import com.carti.ribs.PresentableInteractor
 import com.carti.ribs.Router
+import com.carti.ribs.Routing
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.ViewRouter
-import com.carti.ribs.bind
-import kotlinx.coroutines.CoroutineScope
+import com.carti.ribs.ViewableRouter
+import com.carti.ribs.Worker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,7 @@ import kotlinx.coroutines.launch
 
 /*
  * 통합 테스트용 샘플 트리: Root → LoggedOut ⇄ LoggedIn
- * RIB마다 Dependency / Component / Builder / Interactor / Router 를 원본 규약대로 둔다.
+ * RIB마다 Dependency / Component / Builder / Interactor / Router 를 RIBs-iOS 템플릿 규약대로 둔다.
  */
 
 // ---------- 공용 서비스 ----------
@@ -49,61 +50,78 @@ class RootBuilder(dependency: EmptyDependency) : Builder<EmptyDependency>(depend
         val component = RootComponent(dependency)
         val interactor = RootInteractor()
         return RootRouter(
-            FakeView("root"),
             interactor,
+            FakeView("root"),
             LoggedOutBuilder(component),
             LoggedInBuilder(component),
         )
     }
 }
 
-class RootInteractor : Interactor<Unit, RootRouter>(Unit), LoggedOutListener, LoggedInListener {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
-        router.routeToLoggedOut()
+interface RootRouting : Routing {
+    fun routeToLoggedOut()
+    fun routeAwayFromLoggedOut()
+    fun routeToLoggedIn(userName: String)
+    fun routeAwayFromLoggedIn()
+}
+
+interface RootInteractable : Interactable, LoggedOutListener, LoggedInListener {
+    var router: RootRouting?
+}
+
+class RootInteractor : Interactor(), RootInteractable {
+    override var router: RootRouting? = null
+
+    override fun didBecomeActive() {
+        router?.routeToLoggedOut()
     }
 
     override fun didLogin(userName: String) {
-        router.routeAwayFromLoggedOut()
-        router.routeToLoggedIn(userName)
+        router?.routeAwayFromLoggedOut()
+        router?.routeToLoggedIn(userName)
     }
 
     override fun didRequestLogout() {
-        router.routeAwayFromLoggedIn()
-        router.routeToLoggedOut()
+        router?.routeAwayFromLoggedIn()
+        router?.routeToLoggedOut()
     }
 }
 
 class RootRouter(
+    interactor: RootInteractable,
     view: FakeView,
-    interactor: RootInteractor,
     private val loggedOutBuilder: LoggedOutBuilder,
     private val loggedInBuilder: LoggedInBuilder,
-) : LaunchRouter<FakeView, RootInteractor>(view, interactor) {
+) : LaunchRouter<RootInteractable, FakeView>(interactor, view), RootRouting {
     private var loggedOut: LoggedOutRouter? = null
     private var loggedIn: LoggedInRouter? = null
 
-    fun routeToLoggedOut() {
+    init {
+        interactor.router = this
+    }
+
+    override fun routeToLoggedOut() {
         if (loggedOut != null) return
         loggedOut = loggedOutBuilder.build(interactor).also(::attachChild)
     }
 
-    fun routeAwayFromLoggedOut() {
+    override fun routeAwayFromLoggedOut() {
         loggedOut?.let(::detachChild)
         loggedOut = null
     }
 
-    fun routeToLoggedIn(userName: String) {
+    override fun routeToLoggedIn(userName: String) {
         if (loggedIn != null) return
         loggedIn = loggedInBuilder.build(interactor, userName).also(::attachChild)
     }
 
-    fun routeAwayFromLoggedIn() {
+    override fun routeAwayFromLoggedIn() {
         loggedIn?.let(::detachChild)
         loggedIn = null
     }
 }
 
-// ---------- LoggedOut (뷰 + Presenter) ----------
+// ---------- LoggedOut (뷰가 Presentable을 구현) ----------
 
 interface LoggedOutDependency : Dependency {
     val sessionStore: SessionStore
@@ -116,15 +134,23 @@ interface LoggedOutListener {
 
 class LoggedOutBuilder(dependency: LoggedOutDependency) : Builder<LoggedOutDependency>(dependency) {
     fun build(listener: LoggedOutListener): LoggedOutRouter {
-        val presenter = LoggedOutPresenter()
-        val interactor = LoggedOutInteractor(presenter, dependency.sessionStore, listener)
-        return LoggedOutRouter(FakeView("loggedOut"), interactor)
+        val view = LoggedOutView()
+        val interactor = LoggedOutInteractor(view, dependency.sessionStore, listener)
+        return LoggedOutRouter(interactor, view)
     }
 }
 
-/** 뷰 입력을 해석해 Interactor로 넘긴다. 공백만 있는 이름은 거른다. */
-class LoggedOutPresenter : Presenter() {
-    var onLoginIntent: ((String) -> Unit)? = null
+interface LoggedOutPresentableListener {
+    fun login(name: String)
+}
+
+interface LoggedOutPresentable : Presentable {
+    var listener: LoggedOutPresentableListener?
+}
+
+/** 뷰 입력을 해석해 리스너로 넘긴다. 공백만 있는 이름은 거른다. */
+class LoggedOutView : LoggedOutPresentable, ViewControllable {
+    override var listener: LoggedOutPresentableListener? = null
     var errorMessage: String? = null
         private set
 
@@ -135,29 +161,27 @@ class LoggedOutPresenter : Presenter() {
             return
         }
         errorMessage = null
-        onLoginIntent?.invoke(name)
+        listener?.login(name)
     }
 }
 
 class LoggedOutInteractor(
-    presenter: LoggedOutPresenter,
+    presenter: LoggedOutPresentable,
     val sessionStore: SessionStore,
     private val listener: LoggedOutListener,
-) : Interactor<LoggedOutPresenter, LoggedOutRouter>(presenter) {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
-        presenter.onLoginIntent = { name ->
-            sessionStore.signIn(name)
-            listener.didLogin(name)
-        }
+) : PresentableInteractor<LoggedOutPresentable>(presenter), LoggedOutPresentableListener {
+    init {
+        presenter.listener = this
     }
 
-    override fun willResignActive() {
-        presenter.onLoginIntent = null
+    override fun login(name: String) {
+        sessionStore.signIn(name)
+        listener.didLogin(name)
     }
 }
 
-class LoggedOutRouter(view: FakeView, interactor: LoggedOutInteractor) :
-    ViewRouter<FakeView, LoggedOutInteractor>(view, interactor)
+class LoggedOutRouter(interactor: LoggedOutInteractor, view: LoggedOutView) :
+    ViewableRouter<LoggedOutInteractor, LoggedOutView>(interactor, view)
 
 // ---------- LoggedIn (뷰 없음 + Worker) ----------
 
@@ -177,18 +201,18 @@ class LoggedInBuilder(dependency: LoggedInDependency) : Builder<LoggedInDependen
 }
 
 /** 로그인 동안 돌아가는 작업. Interactor가 비활성화되면 멈춘다. */
-class HeartbeatWorker : RibCoroutineWorker {
+class HeartbeatWorker : Worker() {
     var job: Job? = null
         private set
     var stopped = false
         private set
 
-    override suspend fun onStart(scope: CoroutineScope) {
+    override fun didStart(interactorScope: InteractorScope) {
         stopped = false
-        job = scope.launch { awaitCancellation() }
+        job = coroutineScope.launch { awaitCancellation() }
     }
 
-    override fun onStop(cause: Throwable) {
+    override fun didStop() {
         stopped = true
     }
 }
@@ -198,9 +222,9 @@ class LoggedInInteractor(
     val sessionStore: SessionStore,
     private val listener: LoggedInListener,
     val heartbeat: HeartbeatWorker,
-) : Interactor<Unit, LoggedInRouter>(Unit) {
-    override fun didBecomeActive(savedInstanceState: RibState?) {
-        coroutineScope.bind(heartbeat)
+) : Interactor() {
+    override fun didBecomeActive() {
+        heartbeat.start(this)
     }
 
     fun logout() {

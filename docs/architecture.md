@@ -1,17 +1,18 @@
 # 아키텍처 규칙
 
-이 프레임워크는 Uber RIBs Android를 Kotlin Multiplatform 공유 코드로 옮긴 것이다([ADR-0001](adr/ADR-0001-uber-ribs-android-as-reference.md)). 이름과 생명주기 순서는 원본을 따르고, 공유 코드로 옮길 수 없는 부분만 바꾼다.
+이 프레임워크는 Uber RIBs-iOS를 Kotlin Multiplatform 공유 코드로 옮긴 것이다([ADR-0010](adr/ADR-0010-uber-ribs-ios-as-reference.md)). 이름과 생명주기 순서는 원본을 따르고, 공유 코드로 옮길 수 없는 부분만 바꾼다. 파일별 대응은 [upstream-comparison.md](upstream-comparison.md)에 있다.
 
 ## 구성 요소의 책임
 
 | 구성 요소 | 하는 일 | 하지 않는 일 |
 |---|---|---|
-| **Interactor** | 비즈니스 로직, 도메인 상태, 활성 구간 동안의 비동기 작업. 자기 Router를 통해 라우팅을 요청한다. | ViewModel을 알지 않는다. 다른 RIB의 Interactor나 자식 Router를 직접 쥐지 않는다. |
-| **Presenter** | 도메인 상태를 ViewModel로 바꾸고 포맷팅한다. 뷰 입력(`did…`)을 사용자 의도로 해석해 Interactor에 전달한다. | ViewModel을 Interactor로 넘기지 않는다. 비즈니스 결정을 하지 않는다. |
-| **View** | ViewModel을 그리고 원시 입력만 전달한다. | 로직을 갖지 않는다. 공유 코드에 UI 툴킷 타입으로 등장하지 않는다([ADR-0004](adr/ADR-0004-opaque-view-controllable.md)). |
-| **Router** | 자식 RIB의 attach/detach와 트리 구조만 다룬다. | 비즈니스 판단을 하지 않는다. |
-| **Builder** | Component를 만들고 Router·Interactor·Presenter를 조립한다. 런타임 파라미터는 `build(...)`로 받는다. | 상태를 갖지 않는다. |
+| **Interactor** | 비즈니스 로직, 도메인 상태, 활성 구간 동안의 비동기 작업. 뷰 입력(`XxxPresentableListener`)을 받아 해석하고 `presenter`로 상태를 보낸다. `router`로 라우팅을 요청한다. | 다른 RIB의 Interactor나 자식 Router를 직접 쥐지 않는다. |
+| **View** (`XxxPresentable`) | 상태를 그리고 원시 입력만 전달한다. 보통 뷰가 `Presentable`을 직접 구현한다. | 로직을 갖지 않는다. 공유 코드에 UI 툴킷 타입으로 등장하지 않는다([ADR-0004](adr/ADR-0004-opaque-view-controllable.md)). |
+| **Presenter** (선택) | 뷰와 Interactor 사이에 변환이 많을 때만 따로 둔다(`Presenter<V>`). 생명주기는 없다. | 비즈니스 결정을 하지 않는다. |
+| **Router** | 자식 RIB의 attach/detach와 트리 구조만 다룬다. 만들어질 때 `interactor.router = this`로 자신을 넣는다. | 비즈니스 판단을 하지 않는다. |
+| **Builder** | Component를 만들고 Router·Interactor·뷰를 조립한다. 런타임 파라미터는 `build(...)`로 받는다. | 상태를 갖지 않는다. |
 | **Component / Dependency** | Dependency는 부모가 제공해야 하는 것, Component는 이 RIB이 만들어 자식에게 넘기는 것이다([ADR-0003](adr/ADR-0003-manual-component-di.md)). | 의존성을 필요 이상으로 위 RIB에서 만들지 않는다. |
+| **Worker** | Interactor 활성 구간에 맞춰 도는 작업. `start(interactor)` 뒤 활성일 때만 `didStart`가 불린다. | 뷰나 Router를 직접 다루지 않는다. |
 
 ## 뷰 계약 명명
 
@@ -19,14 +20,16 @@
 
 | 방향 | 이름 | 예 |
 |---|---|---|
-| 공유 코드 → 뷰 | `XxxPresentable : ViewControllable` | `LoggedOutPresentable.showError(message)` |
-| 뷰 → 공유 코드 | `XxxPresentableListener` | `LoggedOutPresentableListener.didTapLogin(rawName)` |
-| 루트처럼 자식 화면만 담는 뷰 | `XxxViewControllable` | `RootViewControllable.showScreen(screen)` |
+| Interactor → 뷰 | `XxxPresentable : Presentable` | `LoggedInPresentable.showUserName(name)` |
+| 뷰 → Interactor | `XxxPresentableListener` | `LoggedOutPresentableListener.didTapLogin(rawName)` |
+| Router → 뷰 | `XxxViewControllable : ViewControllable` | `LoggedInViewControllable.showScreen(screen)` |
+| 플랫폼 뷰가 구현하는 묶음 | `XxxViewContract : XxxPresentable, XxxViewControllable` | `LoginViewFactory.makeLoggedInView(): LoggedInViewContract` |
 
-- Android 원본은 Interactor 안에 `interface XxxPresenter`를 두고 View가 구현한다. 이 프레임워크에서는 `Presenter`가 생명주기를 가진 클래스 이름이라서, 같은 이름의 뷰 계약과 헷갈리지 않게 iOS 규약을 쓴다.
+- 원본처럼 `XxxPresentable`과 `XxxViewControllable`을 나눈다. Interactor는 `XxxPresentable`만, Router는 `XxxViewControllable`만 받는다. 자식 화면이 없는 RIB의 `XxxViewControllable`은 비어 있다.
+- 원본은 Builder가 구체 ViewController를 만들어 두 역할을 함께 얻는다. 공유 코드는 플랫폼 클래스를 모르므로 팩토리가 두 인터페이스를 묶은 `XxxViewContract`를 돌려준다. 이 이름은 플랫폼 구현 이름(`XxxScreen`, `WebXxxView`, SwiftUI `XxxView`)과 겹치지 않게 정했다.
+- 뷰만 담는 루트처럼 Interactor가 그릴 것이 없는 RIB은 `XxxViewControllable`만 둔다(`RootViewControllable`).
 - 플랫폼 뷰는 `listener`를 약한 참조로 둔다. 공유 코드와 플랫폼 객체 사이의 순환 참조는 Kotlin/Native GC가 회수하지 못한다.
-- 뷰 계약은 메인 스레드에서만 부른다. 프레임워크가 가로챌 수 없는 호출 지점에서는 `checkMainThread()`를 쓴다([ADR-0007](adr/ADR-0007-injected-main-thread-check.md)).
-- `bind`로 붙인 Worker는 원본처럼 `RibDispatchers.Default`에서 돈다. Worker에서 뷰를 갱신할 때는 `withContext(RibDispatchers.Main)`으로 돌아온다. Interactor의 `coroutineScope`는 이미 메인이다.
+- 뷰 계약은 메인 스레드에서만 부른다. 프레임워크가 가로챌 수 없는 호출 지점에서는 `checkMainThread()`를 쓴다([ADR-0007](adr/ADR-0007-injected-main-thread-check.md)). Interactor와 Worker의 `coroutineScope`는 메인 디스패처다.
 
 ## 라우팅 규약
 
@@ -37,41 +40,19 @@
 
 ## 생명주기 순서 (원본과 동일)
 
-attach할 때 (`parent.attachChild(child, tag)`):
+attach할 때 (`parent.attachChild(child)` 또는 `attachChild(child, tag)`):
 1. 자식을 children에 추가
-2. `child.dispatchAttach(tag로 찾은 저장 상태, tag)`
-3. 자식 Router의 `didLoad()` (처음 한 번만)
-4. 자식 Router의 `willAttach()`
-5. 자식 Interactor 활성화 → `didBecomeActive(savedState)`
-
-자식의 자식은 여기서 붙지 않는다. 자식 Interactor나 Router가 직접 `attachChild`로 붙인다.
+2. (확장) tag로 찾은 저장 상태를 자식 Interactor에 넘김
+3. 자식 Interactor `activate()` → `didBecomeActive()`
+4. 자식의 기존 하위 트리를 위에서 아래로 활성화
+5. 자식 Router `load()` → 처음 한 번만 `didLoad()`. 고정 자식은 여기서 붙인다
 
 detach할 때 (`parent.detachChild(child)`):
-1. 자식을 children에서 제거 (붙어 있지 않았으면 여기서 끝)
-2. 자식 Interactor의 `willResignActive()` → 활성 스코프 취소
-3. 자식 Router의 `willDetach()`
-4. 자식의 자식들을 같은 순서로 detach (위에서 아래로)
+1. 자식 Interactor `deactivate()` → `willResignActive()` → 활성 스코프 취소
+2. 자식의 하위 트리를 위에서 아래로 비활성화. 하위 트리는 떼지 않고 그대로 둔다
+3. 자식을 children에서 제거 (붙어 있지 않았으면 아무 일도 없다)
+
+루트 시작(`LaunchRouter.launch(host)`): 뷰 표시 → 활성화 → `load()`.
+루트 종료(`shutdown()`, 원본의 `deinit`): 루트 비활성화 → 자식 전체 detach → 뷰 숨김.
 
 모든 생명주기 호출은 단일 스레드에서 한다([ADR-0005](adr/ADR-0005-single-thread-lifecycle.md)).
-
-## 원본과 다른 점
-
-| Android 원본 | 이 프레임워크 | 근거 |
-|---|---|---|
-| `lifecycle(): Observable<InteractorEvent>` | `lifecycle: SharedFlow<InteractorEvent>` | [ADR-0002](adr/ADR-0002-coroutines-instead-of-rx.md) |
-| AutoDispose `ScopeProvider` / `requestScope()` | 활성 구간 `coroutineScope` 취소 | ADR-0002 |
-| `Bundle` / `savedInstanceState` | `RibState?`. 값은 String·Long·Double·Boolean·List·RibState만, `encodeToString()`으로 문자열 하나로 저장. iOS는 복원을 연결하지 않음 | [ADR-0008](adr/ADR-0008-ribstate-string-encoding.md) |
-| `ViewRouter<V : View, I>` | `ViewRouter<V : ViewControllable, I>` | ADR-0004 |
-| Dagger Component, `@Inject` | 수동 `Component<D : Dependency>`, 생성자 주입 | ADR-0003 |
-| `RibActivity` / `RibFragment` 진입점 | `LaunchRouter.launch(host)` / `shutdown()` (attach 후 뷰 표시, detach 후 뷰 숨김) | ADR-0004 |
-| 루트 뷰 컨테이너(`ViewGroup`, `UIWindow`) | `ViewHost<V>` 인터페이스, 플랫폼 어댑터가 구현 | ADR-0004 |
-| (없음) | `Router.mount()` / `ViewRouter.mount(host)` → `RibMount.unmount()`: RIB 없는 호스트에 하위 트리 장착 | 확장 API |
-| `LeakDetector`, `RibRefWatcher` | 이번 범위에서 제외 | — |
-| 같은 tag 중복 attach 시 경고만 | 같은 **인스턴스** 중복 attach는 실패, 같은 tag는 허용 | 인스턴스 중복은 Interactor 이중 활성화로 이어짐 |
-| 붙지 않은 자식 detach 시에도 `dispatchDetach` 호출 | 아무 일도 하지 않음 | 비활성 Interactor의 이중 비활성화 방지 |
-| RIB 이벤트 버스(`RibEvents`), breadcrumb 로그 | 아직 없음 | 필요해지면 Flow로 추가 |
-| 메인 스레드 검사 | 플랫폼이 주입한 `MainThreadChecker`로 생명주기 진입점에서 검사(기본 꺼짐), 뷰 호출 전에는 `checkMainThread()` | [ADR-0007](adr/ADR-0007-injected-main-thread-check.md) |
-| Presenter `lifecycle()` Observable, `requestScope()` | `lifecycleFlow`, 로드 구간 `coroutineScope` | ADR-0002 |
-| Presenter 중복 로드·로드 전 언로드에 가드 없음 | 실패시킴 | 로드 구간 스코프가 겹치지 않게 |
-| Rx `Worker` + `WorkerBinder` (원본에서 deprecated) | 옮기지 않음. `RibCoroutineWorker` + `CoroutineScope.bind`만 제공 | ADR-0002 |
-| `RibCoroutineWorker`의 `RibActionEmitter`(이벤트 보고) | 없음 | RIB 이벤트 버스 미도입 |

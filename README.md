@@ -1,7 +1,7 @@
 # carti-RIBs-KMP
 
 Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유 코드로 옮긴 프레임워크입니다.
-원본은 [uber/RIBs](https://github.com/uber/RIBs)의 Android 구현이고, 이름과 생명주기 순서를 그대로 따릅니다.
+원본은 [uber/RIBs-iOS](https://github.com/uber/RIBs-iOS)이고, 이름과 생명주기 순서를 그대로 따릅니다([ADR-0010](docs/adr/ADR-0010-uber-ribs-ios-as-reference.md)). 처음에는 Android 구현을 원본으로 삼았습니다(ADR-0001, 대체됨).
 
 - 비동기: Rx 없이 코루틴/Flow (`rib-coroutines` 방식)
 - DI: Dagger 없이 수동 `Component` / `Dependency`
@@ -19,6 +19,8 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | M5 | 비동기 로그인 샘플(로딩·실패·취소, `AuthService`) | 완료 |
 | M6 | 할 일 목록·상세 스택, 결과 전달, 세션 Worker, `RibState` 저장·복원(ADR-0008), `newRib` 스캐폴딩 | 완료 |
 | - | Android(Compose) 샘플, iOS와 같은 흐름 | 완료 (에뮬레이터 UI 테스트로 확인) |
+| M7 | 브라우저 대상, `ribs-web` 어댑터(ADR-0009), React 샘플 | 완료 (Chrome Headless·Vitest로 확인) |
+| M8 | 원본을 RIBs-iOS로 전환(ADR-0010): `activate`/`deactivate`, `PresentableInteractor`, `ViewableRouter`, `Router.load`, `Worker`, `ComponentizedBuilder` | 완료 (JVM, JS, Android, iOS 시뮬레이터 UI 테스트로 확인) |
 
 ## 빠른 시작
 
@@ -86,14 +88,36 @@ iOS 샘플과 같은 `login-shared` 트리와 뷰 계약을 Compose로 구현한
 ./gradlew :samples:android-login:connectedDebugAndroidTest   # 에뮬레이터나 기기 필요
 ```
 
+## 웹 샘플 (React)
+
+같은 `login-shared` 트리를 React로 그리는 샘플입니다. 구조는 ADR-0009를 따릅니다. iOS·Android와 달리 뷰 계약은 Kotlin(`jsMain`)이 구현하고, React는 화면 상태를 구독하고 함수를 부르기만 합니다.
+
+| 위치 | 역할 |
+|---|---|
+| `ribs-web` | Kotlin/JS 어댑터. `ViewStore`(화면 상태 스냅숏), `ScreenSlot`(자식 화면 자리), `WebViewControllable` |
+| `react/ribs-react` | React 어댑터. `useViewStore` 훅과 `RibSlot` 컴포넌트. iOS의 `RIBSlotView`, Android의 `RibSlot`에 해당 |
+| `samples/web-login` | 뷰 계약의 웹 구현과 진입점 `WebLoginApp`(Kotlin), `react/`에 Vite 앱과 흐름 테스트 |
+
+- RIB 트리는 React 밖(`main.tsx`)에서 붙인다. StrictMode의 이중 마운트가 attach를 두 번 하지 않는다
+- JS로 내보내는 화면 상태에는 `Long` 대신 `Int`, `List` 대신 `Array`를 쓴다
+
+```bash
+./gradlew :ribs-web:check                                            # ViewStore·ScreenSlot 테스트(Node, Chrome Headless)
+cd samples/web-login/react && npm install && npm run kotlin   # Kotlin 빌드 결과 생성
+npm test                                                             # 로그인 → 목록 → 상세 → 로그아웃 흐름(Vitest)
+npm run dev
+```
+
+브라우저 테스트는 `CHROME_BIN`에 Chrome 경로가 필요합니다.
+
 ## 샘플 시나리오
 
 | 시나리오 | 다루는 것 |
 |---|---|
-| 로그인(LoggedOut) | Presenter 입력 검증, 비동기 요청과 취소, 중복 요청 무시 |
+| 로그인(LoggedOut) | `PresentableInteractor` 입력 검증, 비동기 요청과 취소, 중복 요청 무시 |
 | 할 일 목록 → 상세 | 화면 스택, Builder 런타임 인자, 뒤로 가기(자식부터 처리) |
 | 상세에서 완료 표시 | 공유 `TodoStore`(Component `shared`)를 통한 결과 전달, Flow 구독 |
-| 세션 시간 표시 | `RibCoroutineWorker`, 로그아웃 시 정지, Worker에서 메인으로 돌아와 뷰 갱신 |
+| 세션 시간 표시 | `Worker`, 로그아웃 시 정지, 메인 디스패처 스코프에서 뷰 갱신 |
 | 상태 저장·복원 | 로그인 사용자, 열린 상세, 완료 항목을 `RibState`로 저장 |
 
 ## RIB 만들기 (스캐폴딩)

@@ -3,33 +3,37 @@ package com.carti.ribs.samples.login
 import com.carti.ribs.Builder
 import com.carti.ribs.Component
 import com.carti.ribs.Dependency
-import com.carti.ribs.Interactor
-import com.carti.ribs.RibCoroutineWorker
-import com.carti.ribs.RibDispatchers
-import com.carti.ribs.RibState
+import com.carti.ribs.PresentableInteractor
+import com.carti.ribs.Presentable
+import com.carti.ribs.InteractorScope
+import com.carti.ribs.Worker
 import com.carti.ribs.ViewControllable
-import com.carti.ribs.ViewRouter
-import com.carti.ribs.bind
+import com.carti.ribs.ViewableRouter
 import com.carti.ribs.checkMainThread
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** 뷰 → 공유 코드: 사용자 입력. */
 interface LoggedInPresentableListener {
     fun didTapLogout()
 }
 
-/** 공유 코드 → 뷰: 머리말(사용자 이름, 세션 시간)과 자식 RIB 화면 하나를 담는 영역(ADR-0006). */
-interface LoggedInPresentable : ViewControllable {
+/** Interactor → 뷰: 머리말(사용자 이름, 세션 시간)을 그린다(ADR-0006). */
+interface LoggedInPresentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: LoggedInPresentableListener?
     fun showUserName(name: String)
     fun showSessionSeconds(seconds: Long)
+}
+
+/** Router → 뷰: 자식 화면을 붙이고 뗀다. RIBs-iOS 템플릿의 `LoggedInViewControllable`. */
+interface LoggedInViewControllable : ViewControllable {
     fun showScreen(screen: ViewControllable)
     fun hideScreen(screen: ViewControllable)
 }
+
+/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [LoggedInPresentable]로, Router는 [LoggedInViewControllable]로만 본다. */
+interface LoggedInViewContract : LoggedInPresentable, LoggedInViewControllable
 
 interface LoggedInDependency : Dependency {
     val viewFactory: LoginViewFactory
@@ -51,7 +55,7 @@ class LoggedInBuilder(dependency: LoggedInDependency) : Builder<LoggedInDependen
         val component = LoggedInComponent(dependency)
         val view = dependency.viewFactory.makeLoggedInView()
         val interactor = LoggedInInteractor(view, userName, component.todoStore, listener, SessionTimerWorker(view))
-        return LoggedInRouter(view, interactor, TodoListBuilder(component), TodoDetailBuilder(component))
+        return LoggedInRouter(interactor, view, TodoListBuilder(component), TodoDetailBuilder(component))
     }
 }
 
@@ -65,28 +69,33 @@ class LoggedInInteractor(
     private val todoStore: TodoStore,
     private val listener: LoggedInListener,
     private val sessionTimer: SessionTimerWorker,
-) : Interactor<LoggedInPresentable, LoggedInRouter>(presenter), LoggedInPresentableListener,
+) : PresentableInteractor<LoggedInPresentable>(presenter), LoggedInPresentableListener,
     TodoListListener, TodoDetailListener {
 
-    override fun didBecomeActive(savedInstanceState: RibState?) {
+    /** Router가 만들어질 때 자신을 넣는다(RIBs-iOS 템플릿과 같음). */
+    var router: LoggedInRouter? = null
+
+    override fun didBecomeActive() {
         presenter.listener = this
         presenter.showUserName(userName)
         (savedInstanceState?.get(KEY_DONE_IDS) as? List<*>)?.filterIsInstance<Long>()?.let(todoStore::restoreDone)
-        router.routeToList()
-        (savedInstanceState?.get(KEY_OPEN_DETAIL_ID) as? Long)?.let(router::routeToDetail)
-        coroutineScope.bind(sessionTimer)
+        router?.routeToList()
+        (savedInstanceState?.get(KEY_OPEN_DETAIL_ID) as? Long)?.let { router?.routeToDetail(it) }
+        sessionTimer.start(this)
     }
 
     override fun willResignActive() {
         presenter.listener = null
+        sessionTimer.stop()
     }
 
     override fun onSaveInstanceState(outState: MutableMap<String, Any?>) {
         outState[KEY_DONE_IDS] = todoStore.doneIds
-        outState[KEY_OPEN_DETAIL_ID] = router.openDetailId
+        outState[KEY_OPEN_DETAIL_ID] = router?.openDetailId
     }
 
     override fun handleBackPress(): Boolean {
+        val router = router ?: return false
         if (router.openDetailId == null) return false
         router.routeAwayFromDetail()
         return true
@@ -94,9 +103,13 @@ class LoggedInInteractor(
 
     override fun didTapLogout() = listener.didRequestLogout()
 
-    override fun didSelectTodo(id: Long) = router.routeToDetail(id)
+    override fun didSelectTodo(id: Long) {
+        router?.routeToDetail(id)
+    }
 
-    override fun didRequestCloseDetail() = router.routeAwayFromDetail()
+    override fun didRequestCloseDetail() {
+        router?.routeAwayFromDetail()
+    }
 
     private companion object {
         const val KEY_DONE_IDS = "doneIds"
@@ -105,13 +118,17 @@ class LoggedInInteractor(
 }
 
 class LoggedInRouter(
-    view: LoggedInPresentable,
     interactor: LoggedInInteractor,
+    view: LoggedInViewControllable,
     private val listBuilder: TodoListBuilder,
     private val detailBuilder: TodoDetailBuilder,
-) : ViewRouter<LoggedInPresentable, LoggedInInteractor>(view, interactor) {
+) : ViewableRouter<LoggedInInteractor, LoggedInViewControllable>(interactor, view) {
     private var list: TodoListRouter? = null
     private var detail: TodoDetailRouter? = null
+
+    init {
+        interactor.router = this
+    }
 
     val openDetailId: Long? get() = detail?.todoId
 
@@ -119,7 +136,7 @@ class LoggedInRouter(
         if (list != null) return
         val child = listBuilder.build(interactor)
         attachChild(child)
-        view.showScreen(child.view)
+        viewController.showScreen(child.viewController)
         list = child
     }
 
@@ -127,36 +144,33 @@ class LoggedInRouter(
         if (detail != null) return
         val child = detailBuilder.build(interactor, todoId) ?: return
         attachChild(child)
-        view.showScreen(child.view)
+        viewController.showScreen(child.viewController)
         detail = child
     }
 
     fun routeAwayFromDetail() {
         val child = detail ?: return
         detachChild(child)
-        view.hideScreen(child.view)
+        viewController.hideScreen(child.viewController)
         detail = null
-        list?.let { view.showScreen(it.view) }
+        list?.let { viewController.showScreen(it.viewController) }
     }
 }
 
 /**
  * 로그인한 동안 1초마다 세션 시간을 뷰에 알린다. Interactor가 비활성화되면 함께 멈춘다.
- * `bind`는 원본처럼 Worker를 [RibDispatchers.Default]에서 돌리므로, 뷰 호출은 메인 디스패처로 돌아와서 한다(ADR-0007).
+ * Worker의 스코프는 메인 디스패처라 뷰를 바로 부른다(ADR-0007).
  */
 class SessionTimerWorker(
     private val presenter: LoggedInPresentable,
     private val tickMillis: Long = TICK_MILLIS,
-) : RibCoroutineWorker {
-    override suspend fun onStart(scope: CoroutineScope) {
-        scope.launch {
+) : Worker() {
+    override fun didStart(interactorScope: InteractorScope) {
+        coroutineScope.launch {
             var seconds = 0L
             while (true) {
-                val current = seconds
-                withContext(RibDispatchers.Main) {
-                    checkMainThread("SessionTimerWorker.showSessionSeconds")
-                    presenter.showSessionSeconds(current)
-                }
+                checkMainThread("SessionTimerWorker.showSessionSeconds")
+                presenter.showSessionSeconds(seconds)
                 delay(tickMillis)
                 seconds++
             }
