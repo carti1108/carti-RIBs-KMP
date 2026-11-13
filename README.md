@@ -1,7 +1,7 @@
 # carti-RIBs-KMP
 
 Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유 코드로 옮긴 프레임워크입니다.
-원본은 [uber/RIBs](https://github.com/uber/RIBs)의 Android 구현이고, 이름과 생명주기 순서를 그대로 따릅니다.
+원본은 [uber/RIBs-iOS](https://github.com/uber/RIBs-iOS)이고, 이름과 생명주기 순서를 그대로 따릅니다([ADR-0010](docs/adr/ADR-0010-uber-ribs-ios-as-reference.md)). 처음에는 Android 구현을 원본으로 삼았습니다(ADR-0001, 대체됨).
 
 - 비동기: Rx 없이 코루틴/Flow (`rib-coroutines` 방식)
 - DI: Dagger 없이 수동 `Component` / `Dependency`
@@ -20,6 +20,7 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 | M6 | 할 일 목록·상세 스택, 결과 전달, 세션 Worker, `RibState` 저장·복원(ADR-0008), `newRib` 스캐폴딩 | 완료 |
 | - | Android(Compose) 샘플, iOS와 같은 흐름 | 완료 (에뮬레이터 UI 테스트로 확인) |
 | M7 | 브라우저 대상, `ribs-web` 어댑터(ADR-0009), React 샘플 | 완료 (Chrome Headless·Vitest로 확인) |
+| M8 | 원본을 RIBs-iOS로 전환(ADR-0010): `activate`/`deactivate`, `PresentableInteractor`, `ViewableRouter`, `Router.load`, `Worker`, `ComponentizedBuilder` | 완료 (JVM, JS, Android). iOS 빌드는 Mac 확인 필요 |
 
 ## 빠른 시작
 
@@ -113,10 +114,10 @@ npm run dev
 
 | 시나리오 | 다루는 것 |
 |---|---|
-| 로그인(LoggedOut) | Presenter 입력 검증, 비동기 요청과 취소, 중복 요청 무시 |
+| 로그인(LoggedOut) | `PresentableInteractor` 입력 검증, 비동기 요청과 취소, 중복 요청 무시 |
 | 할 일 목록 → 상세 | 화면 스택, Builder 런타임 인자, 뒤로 가기(자식부터 처리) |
 | 상세에서 완료 표시 | 공유 `TodoStore`(Component `shared`)를 통한 결과 전달, Flow 구독 |
-| 세션 시간 표시 | `RibCoroutineWorker`, 로그아웃 시 정지, Worker에서 메인으로 돌아와 뷰 갱신 |
+| 세션 시간 표시 | `Worker`, 로그아웃 시 정지, 메인 디스패처 스코프에서 뷰 갱신 |
 | 상태 저장·복원 | 로그인 사용자, 열린 상세, 완료 항목을 `RibState`로 저장 |
 
 ## RIB 만들기 (스캐폴딩)
