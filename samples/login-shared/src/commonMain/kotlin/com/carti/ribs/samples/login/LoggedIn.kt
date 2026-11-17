@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalJsExport::class)
+
 package com.carti.ribs.samples.login
 
 import com.carti.ribs.Builder
@@ -11,19 +13,27 @@ import com.carti.ribs.ViewControllable
 import com.carti.ribs.ViewableRouter
 import com.carti.ribs.checkMainThread
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 /** 뷰 → 공유 코드: 사용자 입력. */
 interface LoggedInPresentableListener {
     fun didTapLogout()
 }
 
+/** 머리말 상태 한 벌. 세션 시간은 Swift·JS에서 다루기 쉽게 Int로 둔다. 웹은 이 타입을 그대로 쓴다. */
+@JsExport
+data class LoggedInViewState(val userName: String, val sessionSeconds: Int)
+
 /** Interactor → 뷰: 머리말(사용자 이름, 세션 시간)을 그린다(ADR-0006). */
 interface LoggedInPresentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: LoggedInPresentableListener?
-    fun showUserName(name: String)
-    fun showSessionSeconds(seconds: Long)
+    fun render(state: LoggedInViewState)
 }
 
 /** Router → 뷰: 자식 화면을 붙이고 뗀다. RIBs-iOS 템플릿의 `LoggedInViewControllable`. */
@@ -54,7 +64,7 @@ class LoggedInBuilder(dependency: LoggedInDependency) : Builder<LoggedInDependen
     fun build(listener: LoggedInListener, userName: String): LoggedInRouter {
         val component = LoggedInComponent(dependency)
         val view = dependency.viewFactory.makeLoggedInView()
-        val interactor = LoggedInInteractor(view, userName, component.todoStore, listener, SessionTimerWorker(view))
+        val interactor = LoggedInInteractor(view, userName, component.todoStore, listener, SessionTimerWorker())
         return LoggedInRouter(interactor, view, TodoListBuilder(component), TodoDetailBuilder(component))
     }
 }
@@ -77,11 +87,14 @@ class LoggedInInteractor(
 
     override fun didBecomeActive() {
         presenter.listener = this
-        presenter.showUserName(userName)
+        render(LoggedInViewState(userName, sessionSeconds = 0))
         (savedInstanceState?.get(KEY_DONE_IDS) as? List<*>)?.filterIsInstance<Long>()?.let(todoStore::restoreDone)
         router?.routeToList()
         (savedInstanceState?.get(KEY_OPEN_DETAIL_ID) as? Long)?.let { router?.routeToDetail(it) }
         sessionTimer.start(this)
+        coroutineScope.launch {
+            sessionTimer.seconds.collect { render(LoggedInViewState(userName, it)) }
+        }
     }
 
     override fun willResignActive() {
@@ -109,6 +122,11 @@ class LoggedInInteractor(
 
     override fun didRequestCloseDetail() {
         router?.routeAwayFromDetail()
+    }
+
+    private fun render(state: LoggedInViewState) {
+        checkMainThread("LoggedInPresentable.render")
+        presenter.render(state)
     }
 
     private companion object {
@@ -158,21 +176,19 @@ class LoggedInRouter(
 }
 
 /**
- * 로그인한 동안 1초마다 세션 시간을 뷰에 알린다. Interactor가 비활성화되면 함께 멈춘다.
- * Worker의 스코프는 메인 디스패처라 뷰를 바로 부른다(ADR-0007).
+ * 로그인한 동안 1초마다 세션 시간을 [seconds]로 내보낸다. 시작할 때 0으로 돌아가고, Interactor가 비활성화되면 함께 멈춘다.
+ * 뷰는 모른다. 화면 상태는 Interactor가 합쳐서 그린다.
  */
-class SessionTimerWorker(
-    private val presenter: LoggedInPresentable,
-    private val tickMillis: Long = TICK_MILLIS,
-) : Worker() {
+class SessionTimerWorker(private val tickMillis: Long = TICK_MILLIS) : Worker() {
+    private val elapsed = MutableStateFlow(0)
+    val seconds: StateFlow<Int> = elapsed.asStateFlow()
+
     override fun didStart(interactorScope: InteractorScope) {
+        elapsed.value = 0
         coroutineScope.launch {
-            var seconds = 0L
             while (true) {
-                checkMainThread("SessionTimerWorker.showSessionSeconds")
-                presenter.showSessionSeconds(seconds)
                 delay(tickMillis)
-                seconds++
+                elapsed.value++
             }
         }
     }

@@ -5,8 +5,10 @@ package com.carti.ribs.samples.web
 import com.carti.ribs.ViewControllable
 import com.carti.ribs.samples.login.LoggedInViewContract
 import com.carti.ribs.samples.login.LoggedInPresentableListener
+import com.carti.ribs.samples.login.LoggedInViewState
 import com.carti.ribs.samples.login.LoggedOutViewContract
 import com.carti.ribs.samples.login.LoggedOutPresentableListener
+import com.carti.ribs.samples.login.LoggedOutViewState
 import com.carti.ribs.samples.login.RootViewControllable
 import com.carti.ribs.samples.login.Todo
 import com.carti.ribs.samples.login.TodoDetailViewContract
@@ -36,12 +38,9 @@ class WebRootView : RootViewControllable, WebViewControllable {
 }
 
 @JsExport
-data class LoggedOutState(val isLoading: Boolean, val errorMessage: String?)
-
-@JsExport
 class WebLoggedOutView : LoggedOutViewContract, WebViewControllable {
     override val screenKey: String = "loggedOut"
-    val store: ViewStore<LoggedOutState> = ViewStore(LoggedOutState(isLoading = false, errorMessage = null))
+    val store: ViewStore<LoggedOutViewState> = ViewStore(LoggedOutViewState())
 
     @JsExport.Ignore
     override var listener: LoggedOutPresentableListener? = null
@@ -51,19 +50,13 @@ class WebLoggedOutView : LoggedOutViewContract, WebViewControllable {
     }
 
     @JsExport.Ignore
-    override fun showError(message: String?) = store.update { it.copy(errorMessage = message) }
-
-    @JsExport.Ignore
-    override fun showLoading(isLoading: Boolean) = store.update { it.copy(isLoading = isLoading) }
+    override fun render(state: LoggedOutViewState) = store.set(state)
 }
-
-@JsExport
-data class LoggedInState(val userName: String, val sessionSeconds: Int)
 
 @JsExport
 class WebLoggedInView : LoggedInViewContract, WebViewControllable {
     override val screenKey: String = "loggedIn"
-    val store: ViewStore<LoggedInState> = ViewStore(LoggedInState(userName = "", sessionSeconds = 0))
+    val store: ViewStore<LoggedInViewState> = ViewStore(LoggedInViewState(userName = "", sessionSeconds = 0))
     val slot: ScreenSlot = ScreenSlot()
 
     @JsExport.Ignore
@@ -74,11 +67,7 @@ class WebLoggedInView : LoggedInViewContract, WebViewControllable {
     }
 
     @JsExport.Ignore
-    override fun showUserName(name: String) = store.update { it.copy(userName = name) }
-
-    // JS로 내보낼 때 Long은 bigint가 되므로 화면 상태에는 Int로 담는다
-    @JsExport.Ignore
-    override fun showSessionSeconds(seconds: Long) = store.update { it.copy(sessionSeconds = seconds.toInt()) }
+    override fun render(state: LoggedInViewState) = store.set(state)
 
     @JsExport.Ignore
     override fun showScreen(screen: ViewControllable) = slot.show(screen.asWeb())

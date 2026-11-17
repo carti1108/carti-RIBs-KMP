@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalJsExport::class)
+
 package com.carti.ribs.samples.login
 
 import com.carti.ribs.Builder
@@ -9,18 +11,23 @@ import com.carti.ribs.ViewableRouter
 import com.carti.ribs.checkMainThread
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 /** 뷰 → 공유 코드: 사용자 입력. */
 interface LoggedOutPresentableListener {
     fun didTapLogin(rawName: String)
 }
 
+/** 화면 상태 한 벌. 필드를 한 번에 넘겨 플랫폼이 중간 상태를 그리지 않게 한다. 웹은 이 타입을 그대로 쓴다. */
+@JsExport
+data class LoggedOutViewState(val isLoading: Boolean = false, val errorMessage: String? = null)
+
 /** 공유 코드 → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 불린다(ADR-0007). */
 interface LoggedOutPresentable : Presentable {
     /** 활성 구간에만 설정된다. 비활성이면 null이라 입력이 무시된다. 플랫폼은 약한 참조로 둔다. */
     var listener: LoggedOutPresentableListener?
-    fun showError(message: String?)
-    fun showLoading(isLoading: Boolean)
+    fun render(state: LoggedOutViewState)
 }
 
 /** Router → 뷰. 붙일 자식 화면이 없어 비어 있다. RIBs-iOS 템플릿의 `LoggedOutViewControllable`. */
@@ -57,6 +64,7 @@ class LoggedOutInteractor(
     private val listener: LoggedOutListener,
 ) : PresentableInteractor<LoggedOutPresentable>(presenter), LoggedOutPresentableListener {
     private var loginJob: Job? = null
+    private var state = LoggedOutViewState()
 
     override fun didBecomeActive() {
         presenter.listener = this
@@ -70,10 +78,10 @@ class LoggedOutInteractor(
     override fun didTapLogin(rawName: String) {
         val name = rawName.trim()
         if (name.isEmpty()) {
-            showError(EMPTY_NAME_ERROR)
+            render(state.copy(errorMessage = EMPTY_NAME_ERROR))
             return
         }
-        showError(null)
+        render(state.copy(errorMessage = null))
         login(name)
     }
 
@@ -81,24 +89,21 @@ class LoggedOutInteractor(
         if (loginJob?.isActive == true) return
         // 활성 구간 스코프는 메인 디스패처라 결과도 메인 스레드에서 받는다.
         loginJob = coroutineScope.launch {
-            showLoading(true)
-            val result = authService.signIn(userName)
-            showLoading(false)
-            when (result) {
-                is AuthResult.Success -> listener.didLogin(result.userName)
-                is AuthResult.Failure -> showError(result.message)
+            render(state.copy(isLoading = true))
+            when (val result = authService.signIn(userName)) {
+                is AuthResult.Success -> {
+                    render(state.copy(isLoading = false))
+                    listener.didLogin(result.userName)
+                }
+                is AuthResult.Failure -> render(state.copy(isLoading = false, errorMessage = result.message))
             }
         }
     }
 
-    private fun showLoading(isLoading: Boolean) {
-        checkMainThread("LoggedOutPresentable.showLoading")
-        presenter.showLoading(isLoading)
-    }
-
-    private fun showError(message: String?) {
-        checkMainThread("LoggedOutPresentable.showError")
-        presenter.showError(message)
+    private fun render(next: LoggedOutViewState) {
+        checkMainThread("LoggedOutPresentable.render")
+        state = next
+        presenter.render(next)
     }
 
     companion object {

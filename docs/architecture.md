@@ -20,7 +20,7 @@
 
 | 방향 | 이름 | 예 |
 |---|---|---|
-| Interactor → 뷰 | `XxxPresentable : Presentable` | `LoggedInPresentable.showUserName(name)` |
+| Interactor → 뷰 | `XxxPresentable : Presentable` | `LoggedInPresentable.render(state)` |
 | 뷰 → Interactor | `XxxPresentableListener` | `LoggedOutPresentableListener.didTapLogin(rawName)` |
 | Router → 뷰 | `XxxViewControllable : ViewControllable` | `LoggedInViewControllable.showScreen(screen)` |
 | 플랫폼 뷰가 구현하는 묶음 | `XxxViewContract : XxxPresentable, XxxViewControllable` | `LoginViewFactory.makeLoggedInView(): LoggedInViewContract` |

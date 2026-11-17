@@ -188,14 +188,14 @@ class LoginAppTest {
     fun sessionTimerTicksWhileLoggedInAndStopsAfterLogout() = appTest {
         startLoggedIn()
         val view = factory.loggedIn.last()
-        assertEquals(0L, view.sessionSeconds)
+        assertEquals(0, view.sessionSeconds)
 
         advanceTimeBy(2_500)
-        assertEquals(2L, view.sessionSeconds)
+        assertEquals(2, view.sessionSeconds)
 
         view.listener?.didTapLogout()
         advanceTimeBy(5_000)
-        assertEquals(2L, view.sessionSeconds)
+        assertEquals(2, view.sessionSeconds)
     }
 
     @Test
@@ -286,19 +286,19 @@ private class FakeRootView : RootViewControllable {
 
 private class FakeLoggedOutView : LoggedOutViewContract {
     override var listener: LoggedOutPresentableListener? = null
-    var error: String? = null
-    var isLoading = false
-    override fun showError(message: String?) { error = message }
-    override fun showLoading(isLoading: Boolean) { this.isLoading = isLoading }
+    var state: LoggedOutViewState = LoggedOutViewState()
+    val error: String? get() = state.errorMessage
+    val isLoading: Boolean get() = state.isLoading
+    override fun render(state: LoggedOutViewState) { this.state = state }
 }
 
 private class FakeLoggedInView : LoggedInViewContract {
     override var listener: LoggedInPresentableListener? = null
-    var userName: String? = null
-    var sessionSeconds: Long? = null
+    var state: LoggedInViewState? = null
+    val userName: String? get() = state?.userName
+    val sessionSeconds: Int? get() = state?.sessionSeconds
     var screen: ViewControllable? = null
-    override fun showUserName(name: String) { userName = name }
-    override fun showSessionSeconds(seconds: Long) { sessionSeconds = seconds }
+    override fun render(state: LoggedInViewState) { this.state = state }
     override fun showScreen(screen: ViewControllable) { this.screen = screen }
     override fun hideScreen(screen: ViewControllable) { if (this.screen === screen) this.screen = null }
 }

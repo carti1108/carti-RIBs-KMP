@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -27,8 +26,10 @@ import com.carti.ribs.compose.ComposeScreenSlot
 import com.carti.ribs.compose.RibSlot
 import com.carti.ribs.samples.login.LoggedInViewContract
 import com.carti.ribs.samples.login.LoggedInPresentableListener
+import com.carti.ribs.samples.login.LoggedInViewState
 import com.carti.ribs.samples.login.LoggedOutViewContract
 import com.carti.ribs.samples.login.LoggedOutPresentableListener
+import com.carti.ribs.samples.login.LoggedOutViewState
 import com.carti.ribs.samples.login.LoginViewFactory
 import com.carti.ribs.samples.login.RootViewControllable
 import com.carti.ribs.samples.login.Todo
@@ -74,25 +75,21 @@ class RootScreen : RootViewControllable, ComposeRenderable {
 }
 
 /**
- * 로그아웃 상태 RIB의 뷰. 상태는 공유 코드가 `showError`·`showLoading`으로 넘기고, 입력은 `listener`로 돌려준다.
+ * 로그아웃 상태 RIB의 뷰. 상태는 공유 코드가 `render`로 한 번에 넘기고, 입력은 `listener`로 돌려준다.
  * GC 환경이라 iOS처럼 listener를 약한 참조로 둘 필요가 없다.
  */
 class LoggedOutScreen : LoggedOutViewContract, ComposeRenderable {
     override var listener: LoggedOutPresentableListener? = null
-    private var errorMessage: String? by mutableStateOf(null)
-    private var isLoading: Boolean by mutableStateOf(false)
+    private var state: LoggedOutViewState by mutableStateOf(LoggedOutViewState())
 
-    override fun showError(message: String?) {
-        errorMessage = message
-    }
-
-    override fun showLoading(isLoading: Boolean) {
-        this.isLoading = isLoading
+    override fun render(state: LoggedOutViewState) {
+        this.state = state
     }
 
     @Composable
     override fun Content() {
         var name by rememberSaveable { mutableStateOf("") }
+        val isLoading = state.isLoading
         ScreenColumn {
             Text("로그인", style = MaterialTheme.typography.headlineLarge)
             OutlinedTextField(
@@ -103,7 +100,7 @@ class LoggedOutScreen : LoggedOutViewContract, ComposeRenderable {
                 singleLine = true,
                 modifier = Modifier.testTag(Tags.NAME_FIELD),
             )
-            errorMessage?.let {
+            state.errorMessage?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag(Tags.ERROR_LABEL))
             }
             if (isLoading) {
@@ -121,16 +118,11 @@ class LoggedOutScreen : LoggedOutViewContract, ComposeRenderable {
 /** 로그인 상태 RIB의 뷰. 머리말과 자식 RIB 화면(목록·상세) 하나를 그린다. */
 class LoggedInScreen : LoggedInViewContract, ComposeRenderable {
     override var listener: LoggedInPresentableListener? = null
-    private var userName: String by mutableStateOf("")
-    private var sessionSeconds: Long by mutableLongStateOf(0)
+    private var state: LoggedInViewState by mutableStateOf(LoggedInViewState(userName = "", sessionSeconds = 0))
     private val slot = ComposeScreenSlot()
 
-    override fun showUserName(name: String) {
-        userName = name
-    }
-
-    override fun showSessionSeconds(seconds: Long) {
-        sessionSeconds = seconds
+    override fun render(state: LoggedInViewState) {
+        this.state = state
     }
 
     override fun showScreen(screen: ViewControllable) = slot.show(screen)
@@ -141,11 +133,11 @@ class LoggedInScreen : LoggedInViewContract, ComposeRenderable {
     override fun Content() {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                "${userName}님, 환영합니다",
+                "${state.userName}님, 환영합니다",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.testTag(Tags.WELCOME_LABEL),
             )
-            Text("로그인 ${sessionSeconds}초", modifier = Modifier.testTag(Tags.SESSION_LABEL))
+            Text("로그인 ${state.sessionSeconds}초", modifier = Modifier.testTag(Tags.SESSION_LABEL))
             OutlinedButton(
                 onClick = { listener?.didTapLogout() },
                 modifier = Modifier.testTag(Tags.LOGOUT_BUTTON),
