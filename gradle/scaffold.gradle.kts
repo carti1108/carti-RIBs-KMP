@@ -53,7 +53,7 @@ val newRib = tasks.register("newRib") {
             file.writeText(content)
             println("created ${file.relativeTo(root.asFile)}")
         }
-        println("Next: add make${ribName}View() to your view factory, wire ${ribName}Builder in the parent Component/Router.")
+        println("Next: implement ${ribName}Dependency in the parent Component (forward make${ribName}View() up to the platform root dependency), wire ${ribName}Builder in the parent Router.")
     }
 }
 

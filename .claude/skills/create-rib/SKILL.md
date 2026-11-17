@@ -40,7 +40,8 @@ docs/architecture.md를 기준으로 한다. 꼭 지킬 것:
 
 - 부모 Component가 새 `XxxDependency`를 구현하게 한다.
 - 부모 Router에 `routeToXxx()` / `routeAwayFromXxx()` 짝을 만든다.
-- 플랫폼 뷰 팩토리에 `makeXxxView()`를 추가한다.
+- 부모 Component는 `makeXxxView()`를 만들 수 없으므로 부모 `Dependency`에 같은 함수를 선언해 위로 넘긴다. 최상단 `RootDependency`를 구현하는 플랫폼 `AppComponent`(Android·Web·iOS)에 실제 뷰 생성을 추가한다.
+- 다른 RIB의 Dependency나 중앙 팩토리에 끼워 넣지 않는다. 각 RIB은 자기 Dependency에 선언된 것만 본다.
 
 ## 5. 검증
 

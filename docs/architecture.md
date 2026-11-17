@@ -23,10 +23,10 @@
 | Interactor → 뷰 | `XxxPresentable : Presentable` | `LoggedInPresentable.render(state)` |
 | 뷰 → Interactor | `XxxPresentableListener` | `LoggedOutPresentableListener.didTapLogin(rawName)` |
 | Router → 뷰 | `XxxViewControllable : ViewControllable` | `LoggedInViewControllable.showScreen(screen)` |
-| 플랫폼 뷰가 구현하는 묶음 | `XxxViewContract : XxxPresentable, XxxViewControllable` | `LoginViewFactory.makeLoggedInView(): LoggedInViewContract` |
+| 플랫폼 뷰가 구현하는 묶음 | `XxxViewContract : XxxPresentable, XxxViewControllable` | `LoggedInDependency.makeLoggedInView(): LoggedInViewContract` |
 
 - 원본처럼 `XxxPresentable`과 `XxxViewControllable`을 나눈다. Interactor는 `XxxPresentable`만, Router는 `XxxViewControllable`만 받는다. 자식 화면이 없는 RIB의 `XxxViewControllable`은 비어 있다.
-- 원본은 Builder가 구체 ViewController를 만들어 두 역할을 함께 얻는다. 공유 코드는 플랫폼 클래스를 모르므로 팩토리가 두 인터페이스를 묶은 `XxxViewContract`를 돌려준다. 이 이름은 플랫폼 구현 이름(`XxxScreen`, `WebXxxView`, SwiftUI `XxxView`)과 겹치지 않게 정했다.
+- 원본은 Builder가 구체 ViewController를 만들어 두 역할을 함께 얻는다. 공유 코드는 플랫폼 클래스를 모르므로 `XxxDependency.makeXxxView()`가 두 인터페이스를 묶은 `XxxViewContract`를 돌려준다. 이 함수는 부모 Dependency를 거쳐 플랫폼이 구현하는 `RootDependency`까지 올라간다. 중앙 뷰 팩토리를 두지 않는 이유는 기능 모듈이 자기 뷰 계약만 알게 하려는 것이다. 이 이름은 플랫폼 구현 이름(`XxxScreen`, `WebXxxView`, SwiftUI `XxxView`)과 겹치지 않게 정했다.
 - 뷰만 담는 루트처럼 Interactor가 그릴 것이 없는 RIB은 `XxxViewControllable`만 둔다(`RootViewControllable`).
 - 플랫폼 뷰는 `listener`를 약한 참조로 둔다. 공유 코드와 플랫폼 객체 사이의 순환 참조는 Kotlin/Native GC가 회수하지 못한다.
 - 뷰 계약은 메인 스레드에서만 부른다. 프레임워크가 가로챌 수 없는 호출 지점에서는 `checkMainThread()`를 쓴다([ADR-0007](adr/ADR-0007-injected-main-thread-check.md)). Interactor와 Worker의 `coroutineScope`는 메인 디스패처다.
