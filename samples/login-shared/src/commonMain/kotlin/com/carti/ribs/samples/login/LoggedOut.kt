@@ -33,12 +33,12 @@ interface LoggedOutPresentable : Presentable {
 /** Router → 뷰. 붙일 자식 화면이 없어 비어 있다. RIBs-iOS 템플릿의 `LoggedOutViewControllable`. */
 interface LoggedOutViewControllable : ViewControllable
 
-/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [LoggedOutPresentable]로, Router는 [LoggedOutViewControllable]로만 본다. */
+/** 플랫폼 뷰 하나가 구현하는 묶음. Dependency가 돌려주고, Interactor는 [LoggedOutPresentable]로, Router는 [LoggedOutViewControllable]로만 본다. */
 interface LoggedOutViewContract : LoggedOutPresentable, LoggedOutViewControllable
 
 interface LoggedOutDependency : Dependency {
-    val viewFactory: LoginViewFactory
     val authService: AuthService
+    fun makeLoggedOutView(): LoggedOutViewContract
 }
 
 /** 자식 → 부모: 사용자 의도로 표현한다. 라우팅은 부모가 정한다. */
@@ -48,7 +48,7 @@ interface LoggedOutListener {
 
 class LoggedOutBuilder(dependency: LoggedOutDependency) : Builder<LoggedOutDependency>(dependency) {
     fun build(listener: LoggedOutListener): LoggedOutRouter {
-        val view = dependency.viewFactory.makeLoggedOutView()
+        val view = dependency.makeLoggedOutView()
         val interactor = LoggedOutInteractor(view, dependency.authService, listener)
         return LoggedOutRouter(interactor, view)
     }

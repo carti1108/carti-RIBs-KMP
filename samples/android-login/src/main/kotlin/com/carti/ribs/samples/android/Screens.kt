@@ -30,7 +30,8 @@ import com.carti.ribs.samples.login.LoggedInViewState
 import com.carti.ribs.samples.login.LoggedOutViewContract
 import com.carti.ribs.samples.login.LoggedOutPresentableListener
 import com.carti.ribs.samples.login.LoggedOutViewState
-import com.carti.ribs.samples.login.LoginViewFactory
+import com.carti.ribs.samples.login.AuthService
+import com.carti.ribs.samples.login.RootDependency
 import com.carti.ribs.samples.login.RootViewControllable
 import com.carti.ribs.samples.login.Todo
 import com.carti.ribs.samples.login.TodoDetailViewContract
@@ -53,8 +54,8 @@ object Tags {
     fun todoRow(id: Long): String = "todoRow-$id"
 }
 
-/** 공유 코드가 RIB마다 요청하는 뷰를 Compose 구현으로 만든다. */
-class ComposeViewFactory : LoginViewFactory {
+/** 앱 최상단 의존성. 공유 코드가 RIB마다 요청하는 뷰를 Compose 구현으로 만든다. */
+class AppComponent(override val authService: AuthService) : RootDependency {
     override fun makeRootView(): RootViewControllable = RootScreen()
     override fun makeLoggedOutView(): LoggedOutViewContract = LoggedOutScreen()
     override fun makeLoggedInView(): LoggedInViewContract = LoggedInScreen()

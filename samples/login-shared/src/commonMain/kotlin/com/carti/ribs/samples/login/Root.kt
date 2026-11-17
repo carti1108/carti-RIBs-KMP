@@ -13,15 +13,27 @@ interface RootViewControllable : ViewControllable {
     fun hideScreen(screen: ViewControllable)
 }
 
+/**
+ * 앱 최상단 의존성. 플랫폼이 구현한다(RIBs-iOS의 `AppComponent` 자리).
+ * 공유 코드는 플랫폼 뷰를 만들 수 없으므로 자손 RIB의 뷰 생성도 여기까지 올라온다.
+ * 각 RIB은 자기 `XxxDependency`에 선언된 것만 보므로, 기능을 모듈로 나눠도 이 인터페이스만 앱 모듈에 남는다.
+ */
 interface RootDependency : Dependency {
-    val viewFactory: LoginViewFactory
     val authService: AuthService
+    fun makeRootView(): RootViewControllable
+    fun makeLoggedOutView(): LoggedOutViewContract
+    fun makeLoggedInView(): LoggedInViewContract
+    fun makeTodoListView(): TodoListViewContract
+    fun makeTodoDetailView(): TodoDetailViewContract
 }
 
 class RootComponent(dependency: RootDependency) :
     Component<RootDependency>(dependency), LoggedOutDependency, LoggedInDependency {
-    override val viewFactory: LoginViewFactory get() = dependency.viewFactory
     override val authService: AuthService get() = dependency.authService
+    override fun makeLoggedOutView(): LoggedOutViewContract = dependency.makeLoggedOutView()
+    override fun makeLoggedInView(): LoggedInViewContract = dependency.makeLoggedInView()
+    override fun makeTodoListView(): TodoListViewContract = dependency.makeTodoListView()
+    override fun makeTodoDetailView(): TodoDetailViewContract = dependency.makeTodoDetailView()
 }
 
 class RootBuilder(dependency: RootDependency) : Builder<RootDependency>(dependency) {
@@ -29,7 +41,7 @@ class RootBuilder(dependency: RootDependency) : Builder<RootDependency>(dependen
         val component = RootComponent(dependency)
         return RootRouter(
             interactor = RootInteractor(),
-            view = dependency.viewFactory.makeRootView(),
+            view = dependency.makeRootView(),
             loggedOutBuilder = LoggedOutBuilder(component),
             loggedInBuilder = LoggedInBuilder(component),
         )

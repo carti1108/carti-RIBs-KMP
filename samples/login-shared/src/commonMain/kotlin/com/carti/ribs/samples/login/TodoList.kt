@@ -21,12 +21,12 @@ interface TodoListPresentable : Presentable {
 /** Router → 뷰. 붙일 자식 화면이 없어 비어 있다. RIBs-iOS 템플릿의 `TodoListViewControllable`. */
 interface TodoListViewControllable : ViewControllable
 
-/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [TodoListPresentable]로, Router는 [TodoListViewControllable]로만 본다. */
+/** 플랫폼 뷰 하나가 구현하는 묶음. Dependency가 돌려주고, Interactor는 [TodoListPresentable]로, Router는 [TodoListViewControllable]로만 본다. */
 interface TodoListViewContract : TodoListPresentable, TodoListViewControllable
 
 interface TodoListDependency : Dependency {
-    val viewFactory: LoginViewFactory
     val todoStore: TodoStore
+    fun makeTodoListView(): TodoListViewContract
 }
 
 interface TodoListListener {
@@ -35,7 +35,7 @@ interface TodoListListener {
 
 class TodoListBuilder(dependency: TodoListDependency) : Builder<TodoListDependency>(dependency) {
     fun build(listener: TodoListListener): TodoListRouter {
-        val view = dependency.viewFactory.makeTodoListView()
+        val view = dependency.makeTodoListView()
         return TodoListRouter(TodoListInteractor(view, dependency.todoStore, listener), view)
     }
 }

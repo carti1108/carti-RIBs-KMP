@@ -19,8 +19,7 @@ struct LoginSampleApp: App {
 final class AppLauncher: NSObject, @preconcurrency ViewHost {
     let windowSlot = RIBScreenSlot()
     private lazy var app = LoginApp(
-        viewFactory: SwiftUIViewFactory(),
-        authService: DelayedAuthService(delayMillis: Self.loginDelayMillis)
+        dependency: AppComponent(authService: DelayedAuthService(delayMillis: Self.loginDelayMillis))
     )
 
     /// 샘플 서버 응답 지연. 로딩 표시를 눈으로 확인할 수 있을 만큼만 둔다.

@@ -42,11 +42,14 @@ interface LoggedInViewControllable : ViewControllable {
     fun hideScreen(screen: ViewControllable)
 }
 
-/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [LoggedInPresentable]로, Router는 [LoggedInViewControllable]로만 본다. */
+/** 플랫폼 뷰 하나가 구현하는 묶음. Dependency가 돌려주고, Interactor는 [LoggedInPresentable]로, Router는 [LoggedInViewControllable]로만 본다. */
 interface LoggedInViewContract : LoggedInPresentable, LoggedInViewControllable
 
+/** 자식(목록·상세)의 뷰는 이 RIB이 만들 수 없으므로 부모에게서 받아 넘긴다. */
 interface LoggedInDependency : Dependency {
-    val viewFactory: LoginViewFactory
+    fun makeLoggedInView(): LoggedInViewContract
+    fun makeTodoListView(): TodoListViewContract
+    fun makeTodoDetailView(): TodoDetailViewContract
 }
 
 interface LoggedInListener {
@@ -56,14 +59,15 @@ interface LoggedInListener {
 /** 목록과 상세가 같은 [TodoStore]를 쓰도록 여기서 한 번만 만든다. */
 class LoggedInComponent(dependency: LoggedInDependency) :
     Component<LoggedInDependency>(dependency), TodoListDependency, TodoDetailDependency {
-    override val viewFactory: LoginViewFactory get() = dependency.viewFactory
+    override fun makeTodoListView(): TodoListViewContract = dependency.makeTodoListView()
+    override fun makeTodoDetailView(): TodoDetailViewContract = dependency.makeTodoDetailView()
     override val todoStore: TodoStore by shared { TodoStore() }
 }
 
 class LoggedInBuilder(dependency: LoggedInDependency) : Builder<LoggedInDependency>(dependency) {
     fun build(listener: LoggedInListener, userName: String): LoggedInRouter {
         val component = LoggedInComponent(dependency)
-        val view = dependency.viewFactory.makeLoggedInView()
+        val view = dependency.makeLoggedInView()
         val interactor = LoggedInInteractor(view, userName, component.todoStore, listener, SessionTimerWorker())
         return LoggedInRouter(interactor, view, TodoListBuilder(component), TodoDetailBuilder(component))
     }

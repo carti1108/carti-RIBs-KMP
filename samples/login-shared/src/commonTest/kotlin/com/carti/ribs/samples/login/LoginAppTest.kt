@@ -26,7 +26,7 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginAppTest {
     private val dispatcher = StandardTestDispatcher()
-    private lateinit var factory: FakeViewFactory
+    private lateinit var factory: FakeAppComponent
     private lateinit var host: FakeHost
     private lateinit var auth: FakeAuthService
     private lateinit var app: LoginApp
@@ -34,10 +34,10 @@ class LoginAppTest {
     @BeforeTest
     fun setUp() {
         RibCoroutinesConfig.dispatchers = SingleDispatcher(dispatcher)
-        factory = FakeViewFactory()
-        host = FakeHost()
         auth = FakeAuthService()
-        app = LoginApp(factory, auth)
+        factory = FakeAppComponent(auth)
+        host = FakeHost()
+        app = LoginApp(factory)
     }
 
     @AfterTest
@@ -206,8 +206,8 @@ class LoginAppTest {
         val saved = app.saveState()
         app.stop()
 
-        val restoredFactory = FakeViewFactory()
-        val restored = LoginApp(restoredFactory, FakeAuthService())
+        val restoredFactory = FakeAppComponent()
+        val restored = LoginApp(restoredFactory)
         restored.start(FakeHost(), saved)
         runCurrent()
 
@@ -316,7 +316,7 @@ private class FakeTodoDetailView : TodoDetailViewContract {
     override fun showTodo(title: String, isDone: Boolean) { this.title = title; this.isDone = isDone }
 }
 
-private class FakeViewFactory : LoginViewFactory {
+private class FakeAppComponent(override val authService: AuthService = FakeAuthService()) : RootDependency {
     val root = FakeRootView()
     val loggedOut = mutableListOf<FakeLoggedOutView>()
     val loggedIn = mutableListOf<FakeLoggedInView>()

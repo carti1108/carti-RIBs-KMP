@@ -20,12 +20,12 @@ interface TodoDetailPresentable : Presentable {
 /** Router → 뷰. 붙일 자식 화면이 없어 비어 있다. RIBs-iOS 템플릿의 `TodoDetailViewControllable`. */
 interface TodoDetailViewControllable : ViewControllable
 
-/** 플랫폼 뷰 하나가 구현하는 묶음. 팩토리가 돌려주고, Interactor는 [TodoDetailPresentable]로, Router는 [TodoDetailViewControllable]로만 본다. */
+/** 플랫폼 뷰 하나가 구현하는 묶음. Dependency가 돌려주고, Interactor는 [TodoDetailPresentable]로, Router는 [TodoDetailViewControllable]로만 본다. */
 interface TodoDetailViewContract : TodoDetailPresentable, TodoDetailViewControllable
 
 interface TodoDetailDependency : Dependency {
-    val viewFactory: LoginViewFactory
     val todoStore: TodoStore
+    fun makeTodoDetailView(): TodoDetailViewContract
 }
 
 /** 자식 → 부모: 상세를 닫아 달라는 의도. 닫는 일(라우팅)은 부모가 한다. */
@@ -37,7 +37,7 @@ class TodoDetailBuilder(dependency: TodoDetailDependency) : Builder<TodoDetailDe
     /** [todoId]가 저장소에 없으면 null을 돌려준다(복원 시 사라진 항목 등). */
     fun build(listener: TodoDetailListener, todoId: Long): TodoDetailRouter? {
         if (dependency.todoStore.find(todoId) == null) return null
-        val view = dependency.viewFactory.makeTodoDetailView()
+        val view = dependency.makeTodoDetailView()
         val interactor = TodoDetailInteractor(view, todoId, dependency.todoStore, listener)
         return TodoDetailRouter(interactor, view, todoId)
     }

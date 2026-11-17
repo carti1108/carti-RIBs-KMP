@@ -30,7 +30,7 @@ class LoginViewModel(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel(), ViewHost<RootViewControllable> {
     val windowSlot = ComposeScreenSlot()
-    private val app = LoginApp(ComposeViewFactory(), DelayedAuthService(loginDelayMillis))
+    private val app = LoginApp(AppComponent(DelayedAuthService(loginDelayMillis)))
 
     init {
         // 공유 코드의 생명주기 호출이 메인 스레드인지 검사한다(ADR-0007).

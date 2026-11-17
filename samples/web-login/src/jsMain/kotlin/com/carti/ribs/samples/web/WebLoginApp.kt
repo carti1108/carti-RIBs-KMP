@@ -3,11 +3,12 @@
 package com.carti.ribs.samples.web
 
 import com.carti.ribs.ViewHost
+import com.carti.ribs.samples.login.AuthService
 import com.carti.ribs.samples.login.DelayedAuthService
 import com.carti.ribs.samples.login.LoggedInViewContract
 import com.carti.ribs.samples.login.LoggedOutViewContract
 import com.carti.ribs.samples.login.LoginApp
-import com.carti.ribs.samples.login.LoginViewFactory
+import com.carti.ribs.samples.login.RootDependency
 import com.carti.ribs.samples.login.RootViewControllable
 import com.carti.ribs.samples.login.TodoDetailViewContract
 import com.carti.ribs.samples.login.TodoListViewContract
@@ -20,7 +21,7 @@ import com.carti.ribs.web.ScreenSlot
 @JsExport
 class WebLoginApp(authDelayMillis: Int) {
     val rootSlot: ScreenSlot = ScreenSlot()
-    private val app = LoginApp(WebViewFactory(), DelayedAuthService(authDelayMillis.toLong()))
+    private val app = LoginApp(WebAppComponent(DelayedAuthService(authDelayMillis.toLong())))
 
     fun start() {
         app.start(
@@ -36,7 +37,8 @@ class WebLoginApp(authDelayMillis: Int) {
     fun stop() = app.stop()
 }
 
-private class WebViewFactory : LoginViewFactory {
+/** 앱 최상단 의존성. 공유 코드가 RIB마다 요청하는 뷰를 웹 구현으로 만든다. */
+private class WebAppComponent(override val authService: AuthService) : RootDependency {
     override fun makeRootView(): RootViewControllable = WebRootView()
     override fun makeLoggedOutView(): LoggedOutViewContract = WebLoggedOutView()
     override fun makeLoggedInView(): LoggedInViewContract = WebLoggedInView()
