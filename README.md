@@ -44,6 +44,8 @@ Android 타깃은 SDK 경로(`local.properties`의 `sdk.dir` 또는 `ANDROID_HOM
 
 실행 방법과 구조는 각 샘플의 README에 있습니다.
 
+피처를 모듈로 나눈 구성은 [samples/multi-feature](samples/multi-feature/README.md)에 있습니다. 피처 4개를 `-api`/`-impl` 모듈로 나누고, iOS는 `AppShared` 프레임워크 하나와 Tuist 피처 모듈로, 웹과 Android는 같은 공유 모듈을 바로 가져다 씁니다.
+
 ## RIB 만들기
 
 ```bash
