@@ -1,0 +1,37 @@
+package com.carti.ribs.samples.multi.root
+
+import com.carti.ribs.ViewHost
+import com.carti.ribs.samples.multi.login.LoginBuilder
+import com.carti.ribs.samples.multi.settings.SettingsBuilder
+import com.carti.ribs.samples.multi.signup.SignupBuilder
+import com.carti.ribs.samples.multi.todo.TodoBuilder
+
+/**
+ * 플랫폼 진입점. 플랫폼이 구현한 [RootDependency]를 받아 루트 RIB을 만든다.
+ * 피처 impl의 Builder를 아는 곳은 여기뿐이다. 루트 Router는 `-api`의 Buildable만 본다.
+ * 생명주기 호출은 메인 스레드에서 한다(ADR-0005).
+ */
+class MultiFeatureApp(dependency: RootDependency) {
+    private val router: RootRouter = run {
+        val component = RootComponent(dependency)
+        RootRouter(
+            interactor = RootInteractor(),
+            view = dependency.makeRootView(),
+            loginBuilder = LoginBuilder(component),
+            signupBuilder = SignupBuilder(component),
+            todoBuilder = TodoBuilder(component),
+            settingsBuilder = SettingsBuilder(component),
+        )
+    }
+
+    fun start(host: ViewHost<RootViewControllable>) {
+        router.launch(host)
+    }
+
+    /** 시스템 뒤로 가기. 트리가 처리하면 true, 아니면 플랫폼 기본 동작을 따른다. */
+    fun handleBackPress(): Boolean = router.handleBackPress()
+
+    fun stop() {
+        router.shutdown()
+    }
+}
