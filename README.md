@@ -11,27 +11,6 @@ Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유
 - DI: Dagger 없이 수동 `Component` / `Dependency`
 - View: 공유 코드는 뷰 계약 인터페이스만 알고, 화면은 플랫폼 어댑터가 맡음
 
-## 구조
-
-```mermaid
-flowchart TB
-    subgraph shared["공유 코드 (commonMain)"]
-        B[Builder] -->|build| R[Router]
-        I[Interactor] -->|router| R
-        R -->|attachChild| CR[자식 Router]
-        I -->|presenter| P[XxxPresentable]
-        R -->|viewController| VC[XxxViewControllable]
-    end
-    subgraph platform["플랫폼 어댑터"]
-        S["SwiftUI (RIBsKMPSwiftUI)"]
-        C["Compose (ribs-compose)"]
-        W["React (ribs-web, ribs-react)"]
-    end
-    P & VC -.->|뷰 계약 구현| S & C & W
-```
-
-Interactor는 `XxxPresentable`만, Router는 `XxxViewControllable`만 받고, 플랫폼 뷰가 둘을 함께 구현합니다. 자세한 규칙은 [아키텍처 규칙](docs/architecture.md)에 있습니다.
-
 ## 요구 사항
 
 | 항목 | 버전 |
