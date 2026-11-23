@@ -1,11 +1,27 @@
 # carti-RIBs-KMP
 
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE.txt)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-7F52FF.svg?logo=kotlin)](gradle/libs.versions.toml)
+![Platforms](https://img.shields.io/badge/platforms-JVM%20%7C%20Android%20%7C%20iOS%20%7C%20macOS%20%7C%20JS-lightgrey.svg)
+
 Uber RIBs(Router-Interactor-Builder) 아키텍처를 Kotlin Multiplatform 공유 코드로 옮긴 프레임워크입니다.
 원본은 [uber/RIBs-iOS](https://github.com/uber/RIBs-iOS)이고, 이름과 생명주기 순서를 그대로 따릅니다([ADR-0010](docs/adr/ADR-0010-uber-ribs-ios-as-reference.md)). 처음에는 Android 구현을 원본으로 삼았습니다(ADR-0001, 대체됨).
 
 - 비동기: Rx 없이 코루틴/Flow (`rib-coroutines` 방식)
 - DI: Dagger 없이 수동 `Component` / `Dependency`
 - View: 공유 코드는 불투명한 `ViewControllable`만 알고, 화면은 플랫폼 어댑터가 맡음
+
+## 요구 사항
+
+| 항목 | 버전 |
+|---|---|
+| Kotlin | 2.3.21 (coroutines 1.10.2) |
+| JDK (빌드) | 17 이상 |
+| Android | minSdk 24 |
+| iOS / macOS | `iosArm64`, `iosSimulatorArm64`, `macosArm64` 타깃. Swift 어댑터(`RIBsKMPSwiftUI`)는 iOS 17 / macOS 14 이상 |
+| 웹 | Kotlin/JS (브라우저, Node.js) |
+
+iOS/macOS 빌드와 Swift 연동은 Mac에서만 가능합니다. 아직 Maven·SPM으로 배포하지 않아 소스를 받아 빌드해서 씁니다.
 
 ## 상태
 
