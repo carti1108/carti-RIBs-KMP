@@ -5,18 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -88,32 +84,8 @@ class LoggedOutScreen : LoggedOutViewContract, ComposeRenderable {
     }
 
     @Composable
-    override fun Content() {
-        var name by rememberSaveable { mutableStateOf("") }
-        val isLoading = state.isLoading
-        ScreenColumn {
-            Text("로그인", style = MaterialTheme.typography.headlineLarge)
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("이름") },
-                enabled = !isLoading,
-                singleLine = true,
-                modifier = Modifier.testTag(Tags.NAME_FIELD),
-            )
-            state.errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag(Tags.ERROR_LABEL))
-            }
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.testTag(Tags.LOADING_INDICATOR))
-            }
-            Button(
-                onClick = { listener?.didTapLogin(name) },
-                enabled = !isLoading,
-                modifier = Modifier.testTag(Tags.LOGIN_BUTTON),
-            ) { Text("로그인") }
-        }
-    }
+    override fun Content() =
+        LoggedOutView(errorMessage = state.errorMessage, isLoading = state.isLoading) { listener?.didTapLogin(it) }
 }
 
 /** 로그인 상태 RIB의 뷰. 머리말과 자식 RIB 화면(목록·상세) 하나를 그린다. */
@@ -194,13 +166,4 @@ class TodoDetailScreen : TodoDetailViewContract, ComposeRenderable {
             ) { Text(if (isDone) "완료 취소" else "완료로 표시") }
         }
     }
-}
-
-@Composable
-private fun ScreenColumn(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) { content() }
 }
