@@ -1,21 +1,9 @@
 package com.carti.ribs.samples.android
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.carti.ribs.ViewControllable
 import com.carti.ribs.compose.ComposeRenderable
 import com.carti.ribs.compose.ComposeScreenSlot
@@ -72,7 +60,7 @@ class RootScreen : RootViewControllable, ComposeRenderable {
 }
 
 /**
- * 로그아웃 상태 RIB의 뷰. 상태는 공유 코드가 `render`로 한 번에 넘기고, 입력은 `listener`로 돌려준다.
+ * 로그아웃 상태 RIB의 어댑터. 상태는 공유 코드가 `render`로 한 번에 넘기고, 입력은 `listener`로 돌려준다.
  * GC 환경이라 iOS처럼 listener를 약한 참조로 둘 필요가 없다.
  */
 class LoggedOutScreen : LoggedOutViewContract, ComposeRenderable {
@@ -88,7 +76,7 @@ class LoggedOutScreen : LoggedOutViewContract, ComposeRenderable {
         LoggedOutView(errorMessage = state.errorMessage, isLoading = state.isLoading) { listener?.didTapLogin(it) }
 }
 
-/** 로그인 상태 RIB의 뷰. 머리말과 자식 RIB 화면(목록·상세) 하나를 그린다. */
+/** 로그인 상태 RIB의 어댑터. 자식 RIB 화면(목록·상세) 슬롯을 [LoggedInView]의 child로 넘긴다. */
 class LoggedInScreen : LoggedInViewContract, ComposeRenderable {
     override var listener: LoggedInPresentableListener? = null
     private var state: LoggedInViewState by mutableStateOf(LoggedInViewState(userName = "", sessionSeconds = 0))
@@ -103,46 +91,27 @@ class LoggedInScreen : LoggedInViewContract, ComposeRenderable {
     override fun hideScreen(screen: ViewControllable) = slot.hide(screen)
 
     @Composable
-    override fun Content() {
-        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                "${state.userName}님, 환영합니다",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.testTag(Tags.WELCOME_LABEL),
-            )
-            Text("로그인 ${state.sessionSeconds}초", modifier = Modifier.testTag(Tags.SESSION_LABEL))
-            OutlinedButton(
-                onClick = { listener?.didTapLogout() },
-                modifier = Modifier.testTag(Tags.LOGOUT_BUTTON),
-            ) { Text("로그아웃") }
-            RibSlot(slot)
-        }
-    }
+    override fun Content() = LoggedInView(
+        userName = state.userName,
+        sessionSeconds = state.sessionSeconds,
+        onLogout = { listener?.didTapLogout() },
+    ) { RibSlot(slot) }
 }
 
-/** 할 일 목록 RIB의 뷰. */
+/** 할 일 목록 RIB의 어댑터. 공유 `Todo`를 [TodoRow]로 바꿔 넘긴다. */
 class TodoListScreen : TodoListViewContract, ComposeRenderable {
     override var listener: TodoListPresentableListener? = null
-    private var todos: List<Todo> by mutableStateOf(emptyList())
+    private var rows: List<TodoRow> by mutableStateOf(emptyList())
 
     override fun showTodos(todos: List<Todo>) {
-        this.todos = todos
+        rows = todos.map { TodoRow(it.id, it.title, it.isDone) }
     }
 
     @Composable
-    override fun Content() {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            todos.forEach { todo ->
-                TextButton(
-                    onClick = { listener?.didTapTodo(todo.id) },
-                    modifier = Modifier.testTag(Tags.todoRow(todo.id)),
-                ) { Text((if (todo.isDone) "✓ " else "") + todo.title) }
-            }
-        }
-    }
+    override fun Content() = TodoListView(rows) { listener?.didTapTodo(it) }
 }
 
-/** 할 일 상세 RIB의 뷰. 화면 안 뒤로 버튼과 시스템 뒤로 가기가 같은 결과(상세 닫기)를 낸다. */
+/** 할 일 상세 RIB의 어댑터. 화면 안 뒤로 버튼과 시스템 뒤로 가기가 같은 결과(상세 닫기)를 낸다. */
 class TodoDetailScreen : TodoDetailViewContract, ComposeRenderable {
     override var listener: TodoDetailPresentableListener? = null
     private var title: String by mutableStateOf("")
@@ -154,16 +123,10 @@ class TodoDetailScreen : TodoDetailViewContract, ComposeRenderable {
     }
 
     @Composable
-    override fun Content() {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = { listener?.didTapBack() }, modifier = Modifier.testTag(Tags.BACK_BUTTON)) {
-                Text("← 목록")
-            }
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag(Tags.DETAIL_TITLE))
-            Button(
-                onClick = { listener?.didTapToggleDone() },
-                modifier = Modifier.testTag(Tags.TOGGLE_DONE_BUTTON),
-            ) { Text(if (isDone) "완료 취소" else "완료로 표시") }
-        }
-    }
+    override fun Content() = TodoDetailView(
+        title = title,
+        isDone = isDone,
+        onBack = { listener?.didTapBack() },
+        onToggleDone = { listener?.didTapToggleDone() },
+    )
 }
