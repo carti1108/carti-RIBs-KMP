@@ -59,6 +59,8 @@ val newRib = tasks.register("newRib") {
 }
 
 fun ribKotlin(n: String, pkg: String): String = """
+@file:OptIn(ExperimentalObjCName::class)
+
 package $pkg
 
 import com.carti.ribs.Builder
@@ -67,6 +69,8 @@ import com.carti.ribs.Presentable
 import com.carti.ribs.PresentableInteractor
 import com.carti.ribs.ViewControllable
 import com.carti.ribs.ViewableRouter
+import kotlin.experimental.ExperimentalObjCName
+import kotlin.native.ObjCName
 
 /** 뷰 → 공유 코드: 사용자 입력. */
 interface ${n}PresentableListener {
@@ -80,6 +84,8 @@ data class ${n}ViewState(val title: String = "")
 interface ${n}Presentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: ${n}PresentableListener?
+    /** Obj-C 이름을 RIB마다 고정한다. 없으면 여러 RIB의 `render(state:)`가 겹쳐 Swift 인자 이름이 선언 순서대로 바뀐다. */
+    @ObjCName("render$n")
     fun render(state: ${n}ViewState)
 }
 
@@ -221,9 +227,7 @@ final class ${n}Screen: NSObject, @preconcurrency ${n}ViewContract, SwiftUIRende
     @ObservationIgnored weak var listener: (any ${n}PresentableListener)?
     private(set) var title = ""
 
-    // 다른 RIB의 `render(state:)`와 Obj-C 셀렉터가 겹치면 Kotlin/Native가 인자 이름을 `state_`, `state__`…로 바꿔 내보낸다.
-    // 컴파일러가 요구하는 이름(예: `render(state_ state:)`)으로 맞춘다(이슈 #3).
-    func render(state: ${n}ViewState) {
+    func render$n(state: ${n}ViewState) {
         title = state.title
     }
 

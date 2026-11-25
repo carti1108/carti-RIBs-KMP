@@ -10,7 +10,7 @@ final class LoggedInScreen: NSObject, @preconcurrency LoggedInViewContract, Swif
     private(set) var state = LoggedInViewState(userName: "", sessionSeconds: 0)
     @ObservationIgnored let slot = RIBScreenSlot()
 
-    func render(state: LoggedInViewState) {
+    func renderLoggedIn(state: LoggedInViewState) {
         self.state = state
     }
 

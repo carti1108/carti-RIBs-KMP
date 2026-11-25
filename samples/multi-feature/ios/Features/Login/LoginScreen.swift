@@ -11,7 +11,7 @@ public final class LoginScreen: NSObject, @preconcurrency LoginViewContract, Swi
 
     override public init() {}
 
-    public func render(state: LoginViewState) {
+    public func renderLogin(state: LoginViewState) {
         self.state = state
     }
 
