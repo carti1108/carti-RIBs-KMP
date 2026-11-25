@@ -221,6 +221,8 @@ final class ${n}Screen: NSObject, @preconcurrency ${n}ViewContract, SwiftUIRende
     @ObservationIgnored weak var listener: (any ${n}PresentableListener)?
     private(set) var title = ""
 
+    // 다른 RIB의 `render(state:)`와 Obj-C 셀렉터가 겹치면 Kotlin/Native가 인자 이름을 `state_`, `state__`…로 바꿔 내보낸다.
+    // 컴파일러가 요구하는 이름(예: `render(state_ state:)`)으로 맞춘다(이슈 #3).
     func render(state: ${n}ViewState) {
         title = state.title
     }
