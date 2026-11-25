@@ -1,26 +1,9 @@
 package com.carti.ribs.samples.multi.android
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.carti.ribs.ViewControllable
 import com.carti.ribs.compose.ComposeRenderable
 import com.carti.ribs.compose.ComposeScreenSlot
@@ -78,6 +61,8 @@ class RootScreen : RootViewControllable, ComposeRenderable {
     override fun Content() = RibSlot(slot)
 }
 
+// 어댑터(ADR-0011). 피처 계약을 구현하고 상태를 Views.kt의 순수 뷰 인자로 풀어 넘긴다.
+
 class LoginScreen : LoginViewContract, ComposeRenderable {
     override var listener: LoginPresentableListener? = null
     private var state by mutableStateOf(LoginViewState())
@@ -87,20 +72,11 @@ class LoginScreen : LoginViewContract, ComposeRenderable {
     }
 
     @Composable
-    override fun Content() {
-        var name by rememberSaveable { mutableStateOf("") }
-        ScreenColumn {
-            Text("로그인", style = MaterialTheme.typography.headlineLarge)
-            NameField(name) { name = it }
-            ErrorText(state.errorMessage)
-            Button(onClick = { listener?.didTapLogin(name) }, modifier = Modifier.testTag(Tags.LOGIN_BUTTON)) {
-                Text("로그인")
-            }
-            TextButton(onClick = { listener?.didTapSignup() }, modifier = Modifier.testTag(Tags.SIGNUP_LINK)) {
-                Text("가입하기")
-            }
-        }
-    }
+    override fun Content() = LoginView(
+        errorMessage = state.errorMessage,
+        onLogin = { listener?.didTapLogin(it) },
+        onSignup = { listener?.didTapSignup() },
+    )
 }
 
 class SignupScreen : SignupViewContract, ComposeRenderable {
@@ -112,20 +88,11 @@ class SignupScreen : SignupViewContract, ComposeRenderable {
     }
 
     @Composable
-    override fun Content() {
-        var name by rememberSaveable { mutableStateOf("") }
-        ScreenColumn {
-            Text("가입", style = MaterialTheme.typography.headlineLarge)
-            NameField(name) { name = it }
-            ErrorText(state.errorMessage)
-            Button(onClick = { listener?.didTapSignup(name) }, modifier = Modifier.testTag(Tags.SIGNUP_BUTTON)) {
-                Text("가입")
-            }
-            TextButton(onClick = { listener?.didTapCancel() }, modifier = Modifier.testTag(Tags.CANCEL_BUTTON)) {
-                Text("취소")
-            }
-        }
-    }
+    override fun Content() = SignupView(
+        errorMessage = state.errorMessage,
+        onSignup = { listener?.didTapSignup(it) },
+        onCancel = { listener?.didTapCancel() },
+    )
 }
 
 class TodoScreen : TodoViewContract, ComposeRenderable {
@@ -137,28 +104,12 @@ class TodoScreen : TodoViewContract, ComposeRenderable {
     }
 
     @Composable
-    override fun Content() {
-        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                "${state.userName}님의 할 일",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.testTag(Tags.WELCOME_LABEL),
-            )
-            state.items.forEach { item ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.testTag(Tags.todoRow(item.id)),
-                ) {
-                    Checkbox(checked = item.isDone, onCheckedChange = { listener?.didToggle(item.id) })
-                    Text(item.title)
-                }
-            }
-            OutlinedButton(
-                onClick = { listener?.didTapSettings() },
-                modifier = Modifier.testTag(Tags.SETTINGS_BUTTON),
-            ) { Text("설정") }
-        }
-    }
+    override fun Content() = TodoView(
+        userName = state.userName,
+        rows = state.items.map { TodoRow(it.id, it.title, it.isDone) },
+        onToggle = { listener?.didToggle(it) },
+        onSettings = { listener?.didTapSettings() },
+    )
 }
 
 class SettingsScreen : SettingsViewContract, ComposeRenderable {
@@ -170,43 +121,9 @@ class SettingsScreen : SettingsViewContract, ComposeRenderable {
     }
 
     @Composable
-    override fun Content() {
-        ScreenColumn {
-            Text("설정", style = MaterialTheme.typography.headlineLarge)
-            Text("${state.userName}(으)로 로그인됨", modifier = Modifier.testTag(Tags.SETTINGS_USER_LABEL))
-            Button(onClick = { listener?.didTapLogout() }, modifier = Modifier.testTag(Tags.LOGOUT_BUTTON)) {
-                Text("로그아웃")
-            }
-            TextButton(onClick = { listener?.didTapClose() }, modifier = Modifier.testTag(Tags.CLOSE_BUTTON)) {
-                Text("닫기")
-            }
-        }
-    }
-}
-
-@Composable
-private fun NameField(value: String, onChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text("이름") },
-        singleLine = true,
-        modifier = Modifier.testTag(Tags.NAME_FIELD),
+    override fun Content() = SettingsView(
+        userName = state.userName,
+        onLogout = { listener?.didTapLogout() },
+        onClose = { listener?.didTapClose() },
     )
-}
-
-@Composable
-private fun ErrorText(message: String?) {
-    message?.let {
-        Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag(Tags.ERROR_LABEL))
-    }
-}
-
-@Composable
-private fun ScreenColumn(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) { content() }
 }
