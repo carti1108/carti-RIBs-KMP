@@ -2,7 +2,7 @@ import AppShared
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// 설정 피처의 뷰.
+/// 설정 피처의 어댑터.
 @MainActor
 @Observable
 public final class SettingsScreen: NSObject, @preconcurrency SettingsViewContract, SwiftUIRenderable {
@@ -11,28 +11,25 @@ public final class SettingsScreen: NSObject, @preconcurrency SettingsViewContrac
 
     override public init() {}
 
-    public func render(state: SettingsViewState) {
+    // 다른 피처의 `render(state:)`와 Obj-C 셀렉터가 겹쳐 Kotlin/Native가 인자 이름을 바꿔 내보낸다(이슈 #3).
+    public func render(state_ state: SettingsViewState) {
         userName = state.userName
     }
 
     public func makeView() -> AnyView {
-        AnyView(SettingsView(screen: self))
+        AnyView(SettingsScreenView(screen: self))
     }
 }
 
-private struct SettingsView: View {
+/// 관찰 가능한 어댑터 상태를 읽어 순수 뷰에 값으로 넘긴다.
+private struct SettingsScreenView: View {
     let screen: SettingsScreen
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("설정").font(.largeTitle.bold())
-            Text("\(screen.userName)(으)로 로그인됨").accessibilityIdentifier("settingsUserLabel")
-            Button("로그아웃") { screen.listener?.didTapLogout() }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("logoutButton")
-            Button("닫기") { screen.listener?.didTapClose() }
-                .accessibilityIdentifier("closeButton")
-        }
-        .padding(24)
+        SettingsView(
+            userName: screen.userName,
+            onLogout: { [weak screen] in screen?.listener?.didTapLogout() },
+            onClose: { [weak screen] in screen?.listener?.didTapClose() }
+        )
     }
 }

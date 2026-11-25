@@ -40,4 +40,4 @@ iOS는 `MultiFeatureSample`(전체 앱)과 `LoginDemo`(로그인 피처만) 스�
 - 공유 흐름: JVM·JS 테스트 통과 (`MultiFeatureAppTest` 12개, `LoginDemoAppTest` 2개)
 - 웹: Vitest·tsc 통과
 - Android: 에뮬레이터(API 37) UI 테스트 2개 통과
-- iOS: Windows에서 작성만 했고 Mac에서 빌드·UI 테스트로 확인하지 않았다
+- iOS: Mac(Xcode 27, iPhone 17 Pro 시뮬레이터)에서 XCUITest 2개 통과, LoginDemo 빌드 확인

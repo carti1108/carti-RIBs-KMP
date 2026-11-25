@@ -2,7 +2,7 @@ import AppShared
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// 가입 피처의 뷰.
+/// 가입 피처의 어댑터.
 @MainActor
 @Observable
 public final class SignupScreen: NSObject, @preconcurrency SignupViewContract, SwiftUIRenderable {
@@ -11,34 +11,25 @@ public final class SignupScreen: NSObject, @preconcurrency SignupViewContract, S
 
     override public init() {}
 
-    public func render(state: SignupViewState) {
+    // 다른 피처의 `render(state:)`와 Obj-C 셀렉터가 겹쳐 Kotlin/Native가 인자 이름을 바꿔 내보낸다(이슈 #3).
+    public func render(state__ state: SignupViewState) {
         self.state = state
     }
 
     public func makeView() -> AnyView {
-        AnyView(SignupView(screen: self))
+        AnyView(SignupScreenView(screen: self))
     }
 }
 
-private struct SignupView: View {
+/// 관찰 가능한 어댑터 상태를 읽어 순수 뷰에 값으로 넘긴다.
+private struct SignupScreenView: View {
     let screen: SignupScreen
-    @State private var name = ""
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("가입").font(.largeTitle.bold())
-            TextField("이름", text: $name)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("nameField")
-            if let message = screen.state.errorMessage {
-                Text(message).foregroundStyle(.red).accessibilityIdentifier("errorLabel")
-            }
-            Button("가입") { screen.listener?.didTapSignup(rawName: name) }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("signupButton")
-            Button("취소") { screen.listener?.didTapCancel() }
-                .accessibilityIdentifier("cancelButton")
-        }
-        .padding(24)
+        SignupView(
+            errorMessage: screen.state.errorMessage,
+            onSignup: { [weak screen] name in screen?.listener?.didTapSignup(rawName: name) },
+            onCancel: { [weak screen] in screen?.listener?.didTapCancel() }
+        )
     }
 }

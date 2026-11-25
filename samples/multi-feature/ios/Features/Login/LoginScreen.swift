@@ -2,7 +2,7 @@ import AppShared
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// 로그인 피처의 뷰. 앱과 LoginDemo가 같이 쓴다.
+/// 로그인 피처의 어댑터. 앱과 LoginDemo가 같이 쓴다.
 @MainActor
 @Observable
 public final class LoginScreen: NSObject, @preconcurrency LoginViewContract, SwiftUIRenderable {
@@ -16,29 +16,19 @@ public final class LoginScreen: NSObject, @preconcurrency LoginViewContract, Swi
     }
 
     public func makeView() -> AnyView {
-        AnyView(LoginView(screen: self))
+        AnyView(LoginScreenView(screen: self))
     }
 }
 
-private struct LoginView: View {
+/// 관찰 가능한 어댑터 상태를 읽어 순수 뷰에 값으로 넘긴다.
+private struct LoginScreenView: View {
     let screen: LoginScreen
-    @State private var name = ""
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("로그인").font(.largeTitle.bold())
-            TextField("이름", text: $name)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("nameField")
-            if let message = screen.state.errorMessage {
-                Text(message).foregroundStyle(.red).accessibilityIdentifier("errorLabel")
-            }
-            Button("로그인") { screen.listener?.didTapLogin(rawName: name) }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("loginButton")
-            Button("가입하기") { screen.listener?.didTapSignup() }
-                .accessibilityIdentifier("signupLink")
-        }
-        .padding(24)
+        LoginView(
+            errorMessage: screen.state.errorMessage,
+            onLogin: { [weak screen] name in screen?.listener?.didTapLogin(rawName: name) },
+            onSignup: { [weak screen] in screen?.listener?.didTapSignup() }
+        )
     }
 }
