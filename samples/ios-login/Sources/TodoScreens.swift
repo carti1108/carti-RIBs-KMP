@@ -2,36 +2,31 @@ import LoginShared
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// 할 일 목록 RIB의 뷰.
+/// 할 일 목록 RIB의 어댑터. 공유 `Todo`를 `TodoRow`로 바꿔 넘긴다.
 @MainActor
 @Observable
 final class TodoListScreen: NSObject, @preconcurrency TodoListViewContract, SwiftUIRenderable {
     @ObservationIgnored weak var listener: (any TodoListPresentableListener)?
-    private(set) var todos: [Todo] = []
+    private(set) var rows: [TodoRow] = []
 
     func showTodos(todos: [Todo]) {
-        self.todos = todos
+        rows = todos.map { TodoRow(id: $0.id, title: $0.title, isDone: $0.isDone) }
     }
 
     func makeView() -> AnyView {
-        AnyView(TodoListView(screen: self))
+        AnyView(TodoListScreenView(screen: self))
     }
 }
 
-private struct TodoListView: View {
+private struct TodoListScreenView: View {
     let screen: TodoListScreen
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(screen.todos, id: \.id) { todo in
-                Button((todo.isDone ? "✓ " : "") + todo.title) { screen.listener?.didTapTodo(id: todo.id) }
-                    .accessibilityIdentifier("todoRow-\(todo.id)")
-            }
-        }
+        TodoListView(rows: screen.rows) { [weak screen] id in screen?.listener?.didTapTodo(id: id) }
     }
 }
 
-/// 할 일 상세 RIB의 뷰. 뒤로 버튼은 공유 코드에 닫기를 요청하고, 닫는 일은 부모 RIB이 한다.
+/// 할 일 상세 RIB의 어댑터. 뒤로 버튼은 공유 코드에 닫기를 요청하고, 닫는 일은 부모 RIB이 한다.
 @MainActor
 @Observable
 final class TodoDetailScreen: NSObject, @preconcurrency TodoDetailViewContract, SwiftUIRenderable {
@@ -45,20 +40,19 @@ final class TodoDetailScreen: NSObject, @preconcurrency TodoDetailViewContract, 
     }
 
     func makeView() -> AnyView {
-        AnyView(TodoDetailView(screen: self))
+        AnyView(TodoDetailScreenView(screen: self))
     }
 }
 
-private struct TodoDetailView: View {
+private struct TodoDetailScreenView: View {
     let screen: TodoDetailScreen
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button("← 목록") { screen.listener?.didTapBack() }.accessibilityIdentifier("backButton")
-            Text(screen.title).font(.title3.bold()).accessibilityIdentifier("detailTitle")
-            Button(screen.isDone ? "완료 취소" : "완료로 표시") { screen.listener?.didTapToggleDone() }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("toggleDoneButton")
-        }
+        TodoDetailView(
+            title: screen.title,
+            isDone: screen.isDone,
+            onBack: { [weak screen] in screen?.listener?.didTapBack() },
+            onToggleDone: { [weak screen] in screen?.listener?.didTapToggleDone() }
+        )
     }
 }

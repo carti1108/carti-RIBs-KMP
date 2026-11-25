@@ -2,44 +2,30 @@ import LoginShared
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// 로그아웃 상태 RIB의 뷰. 상태는 공유 코드가 `render`로 한 번에 넘기고, 입력은 `listener`로 돌려준다.
+/// 로그아웃 상태 RIB의 어댑터. 상태는 공유 코드가 `render`로 한 번에 넘기고, 입력은 `listener`로 돌려준다.
 @MainActor
 @Observable
 final class LoggedOutScreen: NSObject, @preconcurrency LoggedOutViewContract, SwiftUIRenderable {
     @ObservationIgnored weak var listener: (any LoggedOutPresentableListener)?
     private(set) var state = LoggedOutViewState(isLoading: false, errorMessage: nil)
 
-    func render(state: LoggedOutViewState) {
+    // `LoggedInPresentable.render(state:)`와 Obj-C 셀렉터가 겹쳐 Kotlin/Native가 인자 이름을 `state_`로 바꿔 내보낸다.
+    func render(state_ state: LoggedOutViewState) {
         self.state = state
     }
 
     func makeView() -> AnyView {
-        AnyView(LoggedOutView(screen: self))
+        AnyView(LoggedOutScreenView(screen: self))
     }
 }
 
-private struct LoggedOutView: View {
+/// 관찰 가능한 어댑터 상태를 읽어 순수 뷰에 값으로 넘긴다.
+private struct LoggedOutScreenView: View {
     let screen: LoggedOutScreen
-    @State private var name = ""
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("로그인").font(.largeTitle.bold())
-            TextField("이름", text: $name)
-                .textFieldStyle(.roundedBorder)
-                .disabled(screen.state.isLoading)
-                .accessibilityIdentifier("nameField")
-            if let message = screen.state.errorMessage {
-                Text(message).foregroundStyle(.red).accessibilityIdentifier("errorLabel")
-            }
-            if screen.state.isLoading {
-                ProgressView().accessibilityIdentifier("loadingIndicator")
-            }
-            Button("로그인") { screen.listener?.didTapLogin(rawName: name) }
-                .buttonStyle(.borderedProminent)
-                .disabled(screen.state.isLoading)
-                .accessibilityIdentifier("loginButton")
+        LoggedOutView(errorMessage: screen.state.errorMessage, isLoading: screen.state.isLoading) { [weak screen] name in
+            screen?.listener?.didTapLogin(rawName: name)
         }
-        .padding(24)
     }
 }
