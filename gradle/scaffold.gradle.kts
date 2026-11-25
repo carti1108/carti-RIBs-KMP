@@ -9,6 +9,7 @@
  * - <kotlinDir>/<package 경로>/<Name>.kt: 뷰 계약, Dependency, Listener, Builder, Interactor, Router
  * - <kotlinDir의 commonMain → commonTest>/<package 경로>/<Name>InteractorTest.kt
  * - <swiftDir>/<Name>Screen.swift (선택), <composeDir>/<composePackage 경로>/<Name>Screen.kt (선택)
+ *   플랫폼 파일 하나에 순수 뷰(값·콜백만 받음)와 어댑터(뷰 계약 구현)를 따로 둔다(ADR-0011).
  */
 
 val newRib = tasks.register("newRib") {
@@ -72,11 +73,14 @@ interface ${n}PresentableListener {
     fun didTapClose()
 }
 
+/** 뷰가 그릴 화면 상태. Interactor가 [${n}Presentable.render]로 한 번에 넘긴다. */
+data class ${n}ViewState(val title: String = "")
+
 /** Interactor → 뷰: 플랫폼이 구현하는 뷰 계약(ADR-0006). 메인 스레드에서만 부른다(ADR-0007). */
 interface ${n}Presentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: ${n}PresentableListener?
-    fun showTitle(title: String)
+    fun render(state: ${n}ViewState)
 }
 
 /** Router → 뷰. 자식 화면을 붙일 때 메서드를 추가한다. */
@@ -111,7 +115,7 @@ class ${n}Interactor(
 
     override fun didBecomeActive() {
         presenter.listener = this
-        presenter.showTitle("$n")
+        presenter.render(${n}ViewState(title = "$n"))
     }
 
     override fun willResignActive() {
@@ -164,7 +168,7 @@ class ${n}InteractorTest {
         val router = ${n}Builder(FakeDependency(view)).build(FakeListener())
 
         val mount = router.mount()
-        assertEquals("$n", view.title)
+        assertEquals("$n", view.state?.title)
 
         mount.unmount()
         assertNull(view.listener)
@@ -183,8 +187,8 @@ class ${n}InteractorTest {
 
     private class Fake${n}View : ${n}ViewContract {
         override var listener: ${n}PresentableListener? = null
-        var title: String? = null
-        override fun showTitle(title: String) { this.title = title }
+        var state: ${n}ViewState? = null
+        override fun render(state: ${n}ViewState) { this.state = state }
     }
 
     private class FakeDependency(private val view: ${n}ViewContract) : ${n}Dependency {
@@ -210,32 +214,47 @@ import $module
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// ${n} RIB의 뷰. 상태는 공유 코드가 넘기고, 입력은 `listener`로 돌려준다.
+/// ${n} RIB의 어댑터(ADR-0011). 뷰 계약을 구현하고 상태를 [${n}View]에 값으로 넘긴다.
 @MainActor
 @Observable
 final class ${n}Screen: NSObject, @preconcurrency ${n}ViewContract, SwiftUIRenderable {
     @ObservationIgnored weak var listener: (any ${n}PresentableListener)?
     private(set) var title = ""
 
-    func showTitle(title: String) {
-        self.title = title
+    func render(state: ${n}ViewState) {
+        title = state.title
     }
 
     func makeView() -> AnyView {
-        AnyView(${n}View(screen: self))
+        AnyView(${n}AdapterView(screen: self))
     }
 }
 
-private struct ${n}View: View {
+/// 어댑터 상태를 읽어 순수 뷰에 넘긴다. Observation 추적이 이 body에서 일어난다.
+private struct ${n}AdapterView: View {
     let screen: ${n}Screen
 
     var body: some View {
+        ${n}View(title: screen.title, onClose: { [weak screen] in screen?.listener?.didTapClose() })
+    }
+}
+
+/// ${n} 화면의 순수 뷰. 값과 콜백만 받고 공유 모듈 타입을 모른다.
+struct ${n}View: View {
+    let title: String
+    let onClose: () -> Void
+
+    var body: some View {
         VStack(spacing: 16) {
-            Text(screen.title).font(.title2.bold())
-            Button("닫기") { screen.listener?.didTapClose() }
+            Text(title).font(.title2.bold())
+            Button("닫기", action: onClose)
         }
         .padding(24)
     }
+}
+
+#Preview {
+    ${n}View(title: "${n}", onClose: {})
 }
 """.trimStart()
 
@@ -250,26 +269,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.carti.ribs.compose.ComposeRenderable
-import $pkg.${n}ViewContract
 import $pkg.${n}PresentableListener
+import $pkg.${n}ViewContract
+import $pkg.${n}ViewState
 
-/** ${n} RIB의 뷰. */
+/** ${n} RIB의 어댑터(ADR-0011). 뷰 계약을 구현하고 상태를 [${n}View]에 값으로 넘긴다. */
 class ${n}Screen : ${n}ViewContract, ComposeRenderable {
     override var listener: ${n}PresentableListener? = null
-    private var title: String by mutableStateOf("")
+    private var state: ${n}ViewState by mutableStateOf(${n}ViewState())
 
-    override fun showTitle(title: String) {
-        this.title = title
+    override fun render(state: ${n}ViewState) {
+        this.state = state
     }
 
     @Composable
-    override fun Content() {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(title)
-            Button(onClick = { listener?.didTapClose() }) { Text("닫기") }
-        }
+    override fun Content() = ${n}View(title = state.title, onClose = { listener?.didTapClose() })
+}
+
+/** ${n} 화면의 순수 뷰. 값과 콜백만 받는다. 더 커지면 별도 파일로 옮긴다. */
+@Composable
+fun ${n}View(title: String, onClose: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(title)
+        Button(onClick = onClose) { Text("닫기") }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+private fun ${n}ViewPreview() = ${n}View(title = "${n}", onClose = {})
 """.trimStart()
