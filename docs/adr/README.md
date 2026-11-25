@@ -36,3 +36,4 @@
 | [ADR-0008](ADR-0008-ribstate-string-encoding.md) | RibState는 허용 타입을 제한하고 문자열 하나로 저장한다 | 채택 | 2026-11-10 |
 | [ADR-0009](ADR-0009-web-bridge-via-kotlin-view-store.md) | 웹(React) 연동은 Kotlin이 뷰 인터페이스를 구현하고 화면 상태 저장소를 내보낸다 | 채택 | 2026-11-12 |
 | [ADR-0010](ADR-0010-uber-ribs-ios-as-reference.md) | Uber RIBs-iOS를 원본으로 삼는다 | 채택 | 2026-11-13 |
+| [ADR-0011](ADR-0011-pure-view-and-adapter.md) | 샘플 플랫폼 뷰는 순수 뷰와 어댑터로 나눈다 | 채택 | 2026-11-25 |
