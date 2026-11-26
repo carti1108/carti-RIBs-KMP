@@ -40,3 +40,4 @@
 | [ADR-0012](ADR-0012-sample-todo-data-layer.md) | multi-feature 샘플의 데이터 계층은 `todo-data` 모듈에 두고 JSON은 kotlinx.serialization으로 읽는다 | 채택 | 2026-11-26 |
 | [ADR-0013](ADR-0013-ktor-http-transport.md) | HTTP 전송은 Ktor 클라이언트 하나로 구현하고 엔진은 타깃별 의존성으로 고른다 | 채택 | 2026-11-26 |
 | [ADR-0014](ADR-0014-write-requests-auth-problem-details.md) | 쓰기 요청·인증 헤더·상태 분류는 공유 데이터 계층이 하고, 전송은 받은 요청을 그대로 보낸다 | 채택 | 2026-11-26 |
+| [ADR-0015](ADR-0015-unauthorized-path-and-token-refresh.md) | 401은 저장소 오류 `Unauthorized`로 피처에 올리고, 토큰 갱신은 `BearerTokenTransport`가 한 번만 한다 | 채택 | 2026-11-26 |
