@@ -19,4 +19,5 @@ gradle/gradle-daemon-jvm.properties
 # 웹 샘플(React)
 node_modules/
 samples/web-login/react/dist/
+samples/multi-feature/export/web-app/react/dist/
 .vite/
