@@ -24,10 +24,17 @@ kotlin {
         commonMain.dependencies {
             api(project(":samples:multi-feature:feature:todo-api"))
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
         }
+        // 타깃마다 Ktor 엔진 하나. KtorHttpTransport의 HttpClient()가 이 엔진을 고른다(ADR-0013).
+        jvmMain.dependencies { implementation(libs.ktor.client.okhttp) }
+        androidMain.dependencies { implementation(libs.ktor.client.okhttp) }
+        iosMain.dependencies { implementation(libs.ktor.client.darwin) }
+        jsMain.dependencies { implementation(libs.ktor.client.js) }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
     }
 }
