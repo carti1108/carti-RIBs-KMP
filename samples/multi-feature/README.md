@@ -5,7 +5,7 @@
 ```
 feature/<이름>-api    계약: 뷰 계약, Dependency, Listener, Buildable
 feature/<이름>-impl   Builder·Interactor·Router (-api만 의존)
-data/todo-data        todo-api의 TodoRepository 구현. HttpTransport(Ktor), RemoteTodoRepository, SampleTodoServer
+data/todo-data        todo-api의 TodoRepository 구현. HttpTransport(Ktor), BearerTokenTransport, TodoApiClient, RemoteTodoRepository, SampleTodoServer
 app-root              루트 RIB. impl과 data를 아는 유일한 모듈. MultiFeatureApp, LoginDemoApp
 export/ios-app        코드 없이 export 설정만. AppShared.xcframework 하나로 묶는다
 export/web-app        웹 뷰 구현(Kotlin/JS)과 React 앱(react/)
@@ -34,7 +34,7 @@ ios/                  Tuist. Swift 피처 모듈 4개 + 앱 + LoginDemo
 
 ```bash
 ./gradlew :samples:multi-feature:app-root:allTests                     # 공유 흐름(JVM·JS 등)
-./gradlew :samples:multi-feature:data:todo-data:allTests                # 데이터 계층
+./gradlew :samples:multi-feature:data:todo-data:allTests                # 데이터 계층. jsBrowserTest는 ChromeHeadless로 다른 출처 API(127.0.0.1:47821)에 요청
 ./gradlew :samples:multi-feature:android-app:connectedDebugAndroidTest  # 에뮬레이터 필요
 
 cd samples/multi-feature/export/web-app/react
@@ -48,7 +48,8 @@ iOS는 `MultiFeatureSample`(전체 앱)과 `LoginDemo`(로그인 피처만) 스�
 
 ## 확인 상태
 
-- 공유 흐름: JVM·JS 테스트 통과 (`MultiFeatureAppTest` 17개, `LoginDemoAppTest` 2개, `RemoteTodoRepositoryTest` 7개, `KtorHttpTransportTest` 4개, JVM 전용 `KtorHttpTransportJvmTest` 3개)
+- 공유 흐름: JVM·JS 테스트 통과 (`MultiFeatureAppTest` 17개, `LoginDemoAppTest` 2개)
+- 데이터 계층: JVM·JS 공통 35개, JVM 전용 실제 OkHttp `KtorHttpTransportJvmTest` 5개, 브라우저 전용 다른 출처 `CrossOriginApiBrowserTest` 5개
 - 웹: Vitest(테스트 서버로 실제 요청 포함) 5개·tsc 통과
-- Android: 에뮬레이터(API 37) UI 테스트 3개 통과(기기 안 서버로 실제 요청 1개 포함)
+- Android: 에뮬레이터(API 37) 계측 테스트 6개 통과(기기 안 서버로 실제 요청: 화면 흐름 1개, 쓰기 요청·401 분류 3개)
 - iOS: Windows에서 작성만 했고 Mac에서 빌드·UI 테스트로 확인하지 않았다
