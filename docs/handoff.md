@@ -16,7 +16,7 @@
 | 5. 플랫폼 입력 브리지(웹) | [ADR-0016](adr/ADR-0016-platform-input-as-view-action.md) | 완료 |
 | 6. CI | `.github/workflows/ci.yml` (check, web, android, ios) | 완료(네 잡 통과) |
 | 7. 실측 | [building.md](building.md) | 완료 |
-| 8. 실행 환경 | [building.md](building.md) "Windows 호스트", "Tauri" | Windows WebView2 완료, macOS WKWebView 남음 |
+| 8. 실행 환경 | [building.md](building.md) "Windows 호스트", "Tauri" | 완료(Windows WebView2, macOS WKWebView) |
 
 샘플 구조 요약(`samples/multi-feature`):
 
@@ -45,7 +45,7 @@ Windows에서는 iOS를 한 번도 빌드하지 못했습니다. 아래 순서�
 5. (완료) CI에 iOS 잡 추가(`macos-latest`, Kotlin/Native 캐시 `~/.konan`). 1~2가 통과한 뒤에 더합니다.
    - 잡 내용: XCFramework 2개, `swift test`(RIBsKMPSwiftUI), ios-login·multi-feature XCUITest. Tuist는 `jdx/mise-action`으로 4.191.5를 받는다. 시뮬레이터는 러너에 있는 첫 iPhone을 고른다. 같은 명령을 Mac에서 돌려 모두 통과했다(XCUITest 4개, 2개).
 6. (완료) iOS 증분 빌드 측정. 다른 PC라 별도 표로 `docs/building.md` "iOS 증분 빌드"에 적었다. 수정 시나리오는 모두 11~12초였다.
-7. Tauri macOS(WKWebView): 출처가 `tauri://localhost`라 같은 출처 `/api/todos` 요청이 되는지 봅니다. 이 Mac에 Rust 툴체인이 없어 아직 못 했다.
+7. (완료) Tauri macOS(WKWebView): 출처가 `tauri://localhost`라 같은 출처 `/api/todos` 요청이 되는지 봅니다. 로그인 뒤 목록 3개가 그려졌다(사람이 직접 입력해 확인). `docs/building.md` "Tauri" 참고.
 8. (점검 완료, 결정 남음) 이슈 #3(Swift API 품질: async/await, sealed 매핑) 검토. 점검 결과는 [swift-api-review.md](swift-api-review.md)에 있다. #3의 완료 기준이 ADR-0006과 충돌해서 어느 쪽으로 갈지 소유자가 정해야 한다.
 
 ## 알고 넘어갈 것

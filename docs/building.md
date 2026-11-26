@@ -107,4 +107,8 @@ Windows(WebView2, Edge 158)에서 확인한 것:
 - 실행 파일은 9.1MB입니다(릴리스, 번들 없음).
 - CSP는 `default-src 'self'; connect-src 'self' ipc: http://ipc.localhost`입니다. 다른 출처 API를 쓰려면 `connect-src`에 그 출처를 더해야 합니다.
 
-macOS(WKWebView)는 확인하지 않았습니다(Mac 필요). WKWebView의 출처는 `tauri://localhost`라 같은 출처 `fetch`가 되는지 따로 봐야 합니다.
+macOS(WKWebView)에서 확인한 것(2026-11-26, Apple M1, macOS 27.0.1, Rust 1.100.0, wry 0.57.4):
+
+- 같은 명령으로 빌드했습니다. 실행 파일은 `src-tauri/target/release/multi-feature-tauri`이고 10.4MB입니다. Rust 의존성을 처음 컴파일한 빌드가 77초 걸렸습니다.
+- 페이지 출처는 `tauri://localhost`입니다. 이름을 넣고 로그인하자 목록 3개가 그려졌습니다. 같은 출처 `/api/todos`를 커스텀 스킴으로 받는 `fetch`가 WKWebView에서도 됩니다.
+- 이 확인은 사람이 창에 직접 입력해서 했습니다. WKWebView에는 CDP가 없고, 자동 입력(System Events)과 창 캡처는 macOS의 손쉬운 사용·화면 기록 권한이 있어야 합니다.
