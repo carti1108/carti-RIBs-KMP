@@ -55,6 +55,9 @@ interface TodoRepository {
 sealed class TodoRepositoryException(message: String, cause: Throwable?) : Exception(message, cause) {
     /** 지금은 가져올 수 없다. 다시 시도할 수 있다. */
     class Unavailable(message: String, cause: Throwable? = null) : TodoRepositoryException(message, cause)
+
+    /** 인증이 거절됐다(토큰 만료 등). 다시 시도해도 같다. 피처는 부모에게 다시 로그인을 요청한다. */
+    class Unauthorized(message: String, cause: Throwable? = null) : TodoRepositoryException(message, cause)
 }
 
 /** 플랫폼이 구현하는 부분. 뷰만 만든다. */
@@ -68,6 +71,9 @@ interface TodoDependency : Dependency, TodoViewFactory {
 
 interface TodoListener {
     fun didRequestSettings()
+
+    /** 저장소가 인증 거절을 알렸다. 다시 로그인해야 한다. */
+    fun didRequireSignIn()
 }
 
 interface TodoBuildable {

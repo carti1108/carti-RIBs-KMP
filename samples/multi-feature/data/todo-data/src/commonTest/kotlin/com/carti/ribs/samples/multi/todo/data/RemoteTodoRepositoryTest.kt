@@ -51,12 +51,19 @@ class RemoteTodoRepositoryTest {
     }
 
     @Test
-    fun unauthorizedIsStillUnavailableUntilFeatureHandlesIt() = runTest {
+    fun unauthorizedIsUnauthorized() = runTest {
         val repository = RemoteTodoRepository(FakeTransport { HttpResponse(401, "") }, BASE_URL)
 
-        val error = assertFailsWith<TodoRepositoryException.Unavailable> { repository.fetchTodos() }
+        val error = assertFailsWith<TodoRepositoryException.Unauthorized> { repository.fetchTodos() }
 
         assertIs<TodoApiException.Unauthorized>(error.cause)
+    }
+
+    @Test
+    fun forbiddenIsUnavailable() = runTest {
+        val repository = RemoteTodoRepository(FakeTransport { HttpResponse(403, "") }, BASE_URL)
+
+        assertFailsWith<TodoRepositoryException.Unavailable> { repository.fetchTodos() }
     }
 
     @Test

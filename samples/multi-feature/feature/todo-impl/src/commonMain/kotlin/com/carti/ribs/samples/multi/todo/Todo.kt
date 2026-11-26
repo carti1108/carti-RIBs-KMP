@@ -65,6 +65,12 @@ class TodoInteractor(
                 repository.fetchTodos()
             } catch (e: TodoRepositoryException.Unavailable) {
                 null
+            } catch (e: TodoRepositoryException.Unauthorized) {
+                // 다시 시도해도 같으므로 오류 문구 없이 로딩만 끄고, 다시 로그인할지는 부모가 정한다.
+                isLoading = false
+                render()
+                listener.didRequireSignIn()
+                return@launch
             }
             isLoading = false
             if (loaded == null) errorMessage = LOAD_ERROR else items = loaded

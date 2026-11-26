@@ -208,6 +208,21 @@ class MultiFeatureAppTest {
     }
 
     @Test
+    fun unauthorizedReturnsToLoginWithoutShowingError() {
+        repository.failure = TodoRepositoryException.Unauthorized("가짜 401")
+        (views.root.current as FakeLoginView).listener!!.didTapLogin("kim")
+        val todo = views.root.current as FakeTodoView
+
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertIs<FakeLoginView>(views.root.current)
+        assertEquals(1, views.root.screens.size)
+        assertNull(todo.listener)
+        assertFalse(todo.state!!.isLoading)
+        assertNull(todo.state!!.errorMessage)
+    }
+
+    @Test
     fun retryWhileLoadingDoesNotStartSecondRequest() {
         repository.gate = CompletableDeferred()
         val todo = login("kim")
@@ -268,6 +283,8 @@ class MultiFeatureAppTest {
 private class FakeTodoRepository : TodoRepository {
     var gate: CompletableDeferred<Unit>? = null
     var failuresLeft = 0
+    /** 있으면 매번 이것을 던진다. */
+    var failure: TodoRepositoryException? = null
     var calls = 0
     var cancelled = false
 
@@ -279,6 +296,7 @@ private class FakeTodoRepository : TodoRepository {
             cancelled = true
             throw e
         }
+        failure?.let { throw it }
         if (failuresLeft > 0) {
             failuresLeft--
             throw TodoRepositoryException.Unavailable("가짜 실패")

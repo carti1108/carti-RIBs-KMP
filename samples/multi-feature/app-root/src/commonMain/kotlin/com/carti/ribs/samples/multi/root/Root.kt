@@ -94,6 +94,9 @@ class RootInteractor : Interactor(), LoginListener, SignupListener, TodoListener
         router?.routeAwayFromSettings()
     }
 
+    /** 인증이 거절되면 로그아웃과 같은 경로로 로그인 화면에 돌아간다. */
+    override fun didRequireSignIn() = didRequestLogout()
+
     override fun didRequestLogout() {
         userName = null
         router?.routeAwayFromSettings()

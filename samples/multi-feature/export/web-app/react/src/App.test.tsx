@@ -18,6 +18,8 @@ let server: Server
 let baseUrl = ''
 /** 남은 횟수만큼 503으로 답한다 */
 let failuresLeft = 0
+/** true면 401 Problem Details로 답한다 */
+let unauthorized = false
 let requestCount = 0
 
 beforeAll(async () => {
@@ -28,6 +30,10 @@ beforeAll(async () => {
     requestCount += 1
     if (request.url !== '/api/todos') {
       response.writeHead(404).end()
+    } else if (unauthorized) {
+      response
+        .writeHead(401, { 'Content-Type': 'application/problem+json' })
+        .end(JSON.stringify({ title: '토큰 만료', status: 401 }))
     } else if (failuresLeft > 0) {
       failuresLeft -= 1
       response.writeHead(503).end()
@@ -46,6 +52,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   failuresLeft = 0
+  unauthorized = false
   requestCount = 0
 })
 
@@ -151,4 +158,14 @@ test('서버에 연결할 수 없으면 오류를 보여 준다', async () => {
 
   expect((await screen.findByRole('alert')).textContent).toBe('할 일 목록을 불러오지 못했습니다')
   expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
+})
+
+test('서버가 401이면 오류 없이 로그인 화면으로 돌아간다', async () => {
+  unauthorized = true
+  startApp()
+  await loginAs('kim')
+
+  expect(await screen.findByRole('heading', { name: '로그인' })).toBeTruthy()
+  expect(screen.queryByRole('alert')).toBeNull()
+  expect(requestCount).toBe(1)
 })

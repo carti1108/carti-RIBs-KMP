@@ -6,7 +6,8 @@ import com.carti.ribs.samples.multi.todo.TodoRepositoryException
 
 /**
  * [TodoApiClient]로 [TodoRepository]를 구현한다.
- * API 실패는 피처가 다르게 다루는 것만 남긴다. 지금은 모두 [TodoRepositoryException.Unavailable]이다(401은 4번에서 나눈다).
+ * API 실패는 피처가 다르게 다루는 것만 남긴다. 401은 [TodoRepositoryException.Unauthorized], 나머지는
+ * [TodoRepositoryException.Unavailable]이다(ADR-0015).
  * 취소(`CancellationException`)는 잡지 않는다.
  */
 class RemoteTodoRepository(private val client: TodoApiClient) : TodoRepository {
@@ -14,6 +15,8 @@ class RemoteTodoRepository(private val client: TodoApiClient) : TodoRepository {
 
     override suspend fun fetchTodos(): List<TodoItem> = try {
         client.fetchTodos()
+    } catch (e: TodoApiException.Unauthorized) {
+        throw TodoRepositoryException.Unauthorized("할 일 목록 요청이 인증 거절됐다: ${e.message}", e)
     } catch (e: TodoApiException) {
         throw TodoRepositoryException.Unavailable("할 일 목록을 가져오지 못했다: ${e.message}", e)
     }
