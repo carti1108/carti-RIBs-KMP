@@ -56,4 +56,4 @@ iOS는 `MultiFeatureSample`(전체 앱)과 `LoginDemo`(로그인 피처만) 스�
 - 데이터 계층: JVM·JS 공통 45개, JVM 전용 실제 OkHttp `KtorHttpTransportJvmTest` 5개, 브라우저 전용 다른 출처 `CrossOriginApiBrowserTest` 5개
 - 웹: Vitest(테스트 서버로 실제 요청, 클립보드·파일 입력 포함) 11개·tsc 통과
 - Android: 에뮬레이터(API 37) 계측 테스트 6개 통과(기기 안 서버로 실제 요청: 화면 흐름 1개, 쓰기 요청·401 분류 3개)
-- iOS: Mac(Xcode 27, iPhone 17 시뮬레이터)에서 XCUITest 2개 통과(샘플 서버 경로). Darwin 엔진 실제 요청(`-todoBaseURL`)은 아직 확인하지 않았다
+- iOS: Mac(Xcode 27, iPhone 17 시뮬레이터)에서 XCUITest 2개 통과(샘플 서버 경로). `-todoBaseURL http://127.0.0.1:<포트>/api`로 Darwin 엔진 실제 요청, 서버가 내려갔을 때 오류·다시 시도를 손으로 확인(ATS 예외 불필요)

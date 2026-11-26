@@ -10,8 +10,8 @@
 | #6 항목 | 결정 | 상태 |
 |---|---|---|
 | 1. 공유 데이터 계층 | [ADR-0012](adr/ADR-0012-sample-todo-data-layer.md) | 완료 |
-| 2. HTTP 전송 | [ADR-0013](adr/ADR-0013-ktor-http-transport.md) Ktor 하나, 엔진은 타깃별 의존성 | 완료(iOS Darwin 미확인) |
-| 3. 쓰기 요청·인증·Problem Details·다른 출처 | [ADR-0014](adr/ADR-0014-write-requests-auth-problem-details.md) | 완료(iOS 실제 소켓 미확인) |
+| 2. HTTP 전송 | [ADR-0013](adr/ADR-0013-ktor-http-transport.md) Ktor 하나, 엔진은 타깃별 의존성 | 완료 |
+| 3. 쓰기 요청·인증·Problem Details·다른 출처 | [ADR-0014](adr/ADR-0014-write-requests-auth-problem-details.md) | 완료(iOS는 읽기 요청만 확인) |
 | 4. 401 경로·토큰 갱신 | [ADR-0015](adr/ADR-0015-unauthorized-path-and-token-refresh.md) | 완료 |
 | 5. 플랫폼 입력 브리지(웹) | [ADR-0016](adr/ADR-0016-platform-input-as-view-action.md) | 완료 |
 | 6. CI | `.github/workflows/ci.yml` (check, web, android) | iOS 잡 없음 |
@@ -30,15 +30,18 @@
 
 Windows에서는 iOS를 한 번도 빌드하지 못했습니다. 아래 순서로 확인합니다. 앞 단계가 깨지면 뒤 단계는 의미가 없습니다.
 
-1. Kotlin 프레임워크와 Swift 앱 빌드
+1~4는 Mac(Xcode 27, iPhone 17 시뮬레이터)에서 끝냈습니다. 이 브랜치는 `feat/ios-pure-view-split`에 머지됐습니다.
+
+1. (완료) Kotlin 프레임워크와 Swift 앱 빌드
    ```bash
    ./gradlew :samples:multi-feature:export:ios-app:assembleAppSharedDebugXCFramework
    cd samples/multi-feature/ios && tuist generate
    ```
    이번에 바뀐 Swift: `ios/Features/Todo/TodoScreen.swift`(로딩·오류·다시 시도), `ios/App/MultiFeatureSampleApp.swift`(`-todoBaseURL`), `ios/UITests/MultiFeatureFlowUITests.swift`(목록 대기). Kotlin 쪽 변경으로 Swift에 노출되는 것: `TodoViewState` 필드 3개, 리스너 메서드 4개, `MultiFeatureApp(dependency:todoBaseUrl:)`. iOS 뷰는 새 리스너 메서드를 부르지 않으므로 구현할 것은 없습니다.
-2. XCUITest(`MultiFeatureSample` 스킴). 이슈 #4의 "기존 UI 테스트 통과" 항목도 여기서 닫힙니다.
-3. Darwin 엔진 실제 요청: 시뮬레이터에서 `-todoBaseURL http://127.0.0.1:<포트>/api`로 띄워 목록을 받는지. `http://`에 ATS 예외가 필요한지 확인합니다(Swift 쪽은 시뮬레이터 `127.0.0.1`에 필요 없었다). 이슈 #6의 3번 "세 플랫폼에서 실제 요청"은 iOS가 빠진 채 체크돼 있습니다.
-4. 이슈 #4의 남은 일: `samples/ios-login`과 `multi-feature/ios/Features/*`를 순수 뷰와 어댑터로 분리(ADR-0011), Swift 스캐폴드 템플릿 컴파일.
+2. (완료, 2개 통과) XCUITest(`MultiFeatureSample` 스킴). 이슈 #4의 "기존 UI 테스트 통과" 항목도 여기서 닫힙니다.
+3. (완료) Darwin 엔진 실제 요청: 시뮬레이터에서 `-todoBaseURL http://127.0.0.1:<포트>/api`로 띄워 목록을 받는지. `http://`에 ATS 예외가 필요한지 확인합니다(Swift 쪽은 시뮬레이터 `127.0.0.1`에 필요 없었다). 이슈 #6의 3번 "세 플랫폼에서 실제 요청"은 iOS가 빠진 채 체크돼 있습니다.
+   - 결과: `python3 -m http.server`로 `react/public`을 서빙하고 `-todoBaseURL http://127.0.0.1:8765/api`로 띄우니 서버 로그에 `GET /api/todos 200`이 찍히고 목록 3개가 보였다. ATS 예외 없이 됐다. 서버를 내리면 "할 일 목록을 불러오지 못했습니다"와 다시 시도 버튼이 나오고, 서버를 다시 올린 뒤 다시 시도하면 목록을 받는다. 쓰기 요청과 401은 iOS에서 확인하지 않았다(쓰는 피처가 없다).
+4. (완료, `feat/ios-pure-view-split`) 이슈 #4의 남은 일: `samples/ios-login`과 `multi-feature/ios/Features/*`를 순수 뷰와 어댑터로 분리(ADR-0011), Swift 스캐폴드 템플릿 컴파일.
 5. CI에 iOS 잡 추가(`macos-latest`, Kotlin/Native 캐시 `~/.konan`). 1~2가 통과한 뒤에 더합니다.
 6. iOS 증분 빌드 측정(`docs/building.md`의 표에 열 추가).
 7. Tauri macOS(WKWebView): 출처가 `tauri://localhost`라 같은 출처 `/api/todos` 요청이 되는지 봅니다.
