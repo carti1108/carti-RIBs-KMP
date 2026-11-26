@@ -37,3 +37,4 @@
 | [ADR-0009](ADR-0009-web-bridge-via-kotlin-view-store.md) | 웹(React) 연동은 Kotlin이 뷰 인터페이스를 구현하고 화면 상태 저장소를 내보낸다 | 채택 | 2026-11-12 |
 | [ADR-0010](ADR-0010-uber-ribs-ios-as-reference.md) | Uber RIBs-iOS를 원본으로 삼는다 | 채택 | 2026-11-13 |
 | [ADR-0011](ADR-0011-pure-view-and-adapter.md) | 샘플 플랫폼 뷰는 순수 뷰와 어댑터로 나눈다 | 채택 | 2026-11-25 |
+| [ADR-0012](ADR-0012-sample-todo-data-layer.md) | multi-feature 샘플의 데이터 계층은 `todo-data` 모듈에 두고 JSON은 kotlinx.serialization으로 읽는다 | 채택 | 2026-11-26 |
