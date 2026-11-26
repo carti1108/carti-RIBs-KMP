@@ -50,3 +50,42 @@ node -e "const fs=require('fs'),z=require('zlib');for(const f of fs.readdirSync(
 - 웹(Kotlin/JS)은 고친 모듈의 klib이 바뀌면 그 모듈에 의존하는 모듈의 컴파일 태스크가 모두 다시 돕니다. 코어 본문만 고쳐도 13개 모듈의 컴파일 태스크가 모두 실행됩니다. 마지막 링크(`compileProductionLibraryKotlinJs`)는 어떤 수정에서든 돕니다.
 - 고친 피처와 상관없는 피처가 다시 빌드되지 않는다는 점은 두 플랫폼 모두 확인됩니다(코어 수정은 예외).
 - 깨끗한 빌드 뒤 첫 "변경 없음"에서는 다른 타깃의 `clean`이 지운 산출물을 빌드 캐시에서 되살리느라 8.5초가 걸렸습니다. 표에는 두 번째 실행을 적었습니다.
+
+## Windows 호스트에서 되는 범위
+
+2026-11-26, 위와 같은 PC에서 확인했습니다(이슈 #6의 8번).
+
+| 대상 | Windows에서 | 확인한 명령 |
+|---|---|---|
+| 코어 검사(테스트·공개 API·공유 코드 규칙) | 됨 | `./gradlew :ribs-core:check` |
+| 모든 멀티플랫폼 모듈 테스트(JVM, JS Node, JS ChromeHeadless) | 됨 | `./gradlew allTests` (86초, 캐시 일부) |
+| 웹 샘플 빌드·Vitest·릴리스 번들 | 됨 | Gradle 태스크 + `npm test`, `npm run build` |
+| Android 샘플 빌드·에뮬레이터 계측 테스트 | 됨 | `connectedDebugAndroidTest` (API 37 에뮬레이터) |
+| 웹 샘플을 Tauri(WebView2)로 | 됨 | 아래 "Tauri" |
+| iOS 프레임워크(`AppShared.xcframework`)·Swift 앱·XCUITest | 안 됨 | Mac 필요. Apple 타깃은 선언만 되어 있고 Windows에서는 건너뛴다(`kotlin.native.ignoreDisabledTargets=true`) |
+
+Windows에서 걸리는 점:
+
+- `npm run kotlin`은 `./gradlew`를 부르는데 npm이 Windows에서 `cmd`로 스크립트를 돌려 실패합니다. 스크립트 안의 Gradle 태스크를 Git Bash나 PowerShell에서 직접 실행합니다.
+- 새 워크트리에는 `local.properties`가 없습니다. Android 빌드는 `ANDROID_HOME`(예: `%LOCALAPPDATA%\Android\Sdk`)을 지정하거나 `local.properties`에 `sdk.dir`을 둡니다.
+- 경로가 길어지면(`node_modules` 아래) `git worktree remove`가 "Filename too long"으로 지우지 못할 수 있습니다.
+
+## Tauri
+
+`samples/multi-feature/export/web-app/tauri`는 웹 샘플의 릴리스 번들(`react/dist`)을 Tauri 웹뷰에 싣는 셸입니다. Rust 명령과 플러그인은 없고, 웹 샘플 코드는 바뀌지 않습니다. Tauri CLI 2.12.4, `tauri` 2.12.5, Rust 1.99.1.
+
+```bash
+./gradlew :samples:multi-feature:export:web-app:jsBrowserProductionLibraryDistribution
+cd samples/multi-feature/export/web-app/react && npm ci && npx vite build
+cd ../tauri && npm ci && npx tauri build --no-bundle   # 첫 빌드 약 2분 20초
+./src-tauri/target/release/multi-feature-tauri.exe
+```
+
+Windows(WebView2, Edge 158)에서 확인한 것:
+
+- 페이지 출처는 `http://tauri.localhost`입니다. 할 일 목록은 그 출처의 `/api/todos`(빌드에 들어간 `public/api/todos`)를 Ktor Js 엔진의 `fetch`로 읽습니다.
+- `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9223`로 띄워 CDP로 이름을 넣고 로그인했을 때, 제목이 "carti님의 할 일"로 바뀌고 목록 3개가 그려지며 오류가 없었습니다.
+- 실행 파일은 9.1MB입니다(릴리스, 번들 없음).
+- CSP는 `default-src 'self'; connect-src 'self' ipc: http://ipc.localhost`입니다. 다른 출처 API를 쓰려면 `connect-src`에 그 출처를 더해야 합니다.
+
+macOS(WKWebView)는 확인하지 않았습니다(Mac 필요). WKWebView의 출처는 `tauri://localhost`라 같은 출처 `fetch`가 되는지 따로 봐야 합니다.

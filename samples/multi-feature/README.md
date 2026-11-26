@@ -8,7 +8,7 @@ feature/<이름>-impl   Builder·Interactor·Router (-api만 의존)
 data/todo-data        todo-api의 TodoRepository 구현. HttpTransport(Ktor), BearerTokenTransport, TodoApiClient, RemoteTodoRepository, SampleTodoServer
 app-root              루트 RIB. impl과 data를 아는 유일한 모듈. MultiFeatureApp, LoginDemoApp
 export/ios-app        코드 없이 export 설정만. AppShared.xcframework 하나로 묶는다
-export/web-app        웹 뷰 구현(Kotlin/JS)과 React 앱(react/)
+export/web-app        웹 뷰 구현(Kotlin/JS)과 React 앱(react/), Tauri 셸(tauri/)
 android-app           Compose 앱. 묶음 없이 app-root를 바로 의존
 ios/                  Tuist. Swift 피처 모듈 4개 + 앱 + LoginDemo
 ```
@@ -41,6 +41,8 @@ ios/                  Tuist. Swift 피처 모듈 4개 + 앱 + LoginDemo
 
 cd samples/multi-feature/export/web-app/react
 npm install && npm run kotlin && npm test   # Windows에서는 npm run kotlin 대신 그 안의 gradlew 태스크를 직접 실행
+
+npm run build && cd ../tauri && npm ci && npx tauri build --no-bundle   # 웹 번들(react/dist)을 Tauri 웹뷰로. docs/building.md "Tauri"
 
 ./gradlew :samples:multi-feature:export:ios-app:assembleAppSharedDebugXCFramework   # Mac
 cd samples/multi-feature/ios && tuist generate
