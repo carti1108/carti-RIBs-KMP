@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -54,13 +55,26 @@ fun SignupView(errorMessage: String?, onSignup: (String) -> Unit, onCancel: () -
 }
 
 @Composable
-fun TodoView(userName: String, rows: List<TodoRow>, onToggle: (Int) -> Unit, onSettings: () -> Unit) {
+fun TodoView(
+    userName: String,
+    rows: List<TodoRow>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onToggle: (Int) -> Unit,
+    onRetry: () -> Unit,
+    onSettings: () -> Unit,
+) {
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             "${userName}님의 할 일",
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.testTag(Tags.WELCOME_LABEL),
         )
+        if (isLoading) CircularProgressIndicator(Modifier.testTag(Tags.LOADING_INDICATOR))
+        errorMessage?.let {
+            ErrorText(it)
+            OutlinedButton(onClick = onRetry, modifier = Modifier.testTag(Tags.RETRY_BUTTON)) { Text("다시 시도") }
+        }
         rows.forEach { row ->
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag(Tags.todoRow(row.id))) {
                 Checkbox(checked = row.isDone, onCheckedChange = { onToggle(row.id) })
@@ -121,7 +135,34 @@ private fun SignupViewPreview() = SignupView(errorMessage = null, onSignup = {},
 private fun TodoViewPreview() = TodoView(
     userName = "carti",
     rows = listOf(TodoRow(1, "장보기", isDone = false), TodoRow(2, "운동", isDone = true)),
+    isLoading = false,
+    errorMessage = null,
     onToggle = {},
+    onRetry = {},
+    onSettings = {},
+)
+
+@Preview(showBackground = true)
+@Composable
+private fun TodoViewLoadingPreview() = TodoView(
+    userName = "carti",
+    rows = emptyList(),
+    isLoading = true,
+    errorMessage = null,
+    onToggle = {},
+    onRetry = {},
+    onSettings = {},
+)
+
+@Preview(showBackground = true)
+@Composable
+private fun TodoViewErrorPreview() = TodoView(
+    userName = "carti",
+    rows = emptyList(),
+    isLoading = false,
+    errorMessage = "할 일 목록을 불러오지 못했습니다",
+    onToggle = {},
+    onRetry = {},
     onSettings = {},
 )
 

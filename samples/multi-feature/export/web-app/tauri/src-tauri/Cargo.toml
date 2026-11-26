@@ -1,0 +1,18 @@
+# 웹 샘플(react/dist)을 Tauri 웹뷰(Windows WebView2, macOS WKWebView)에 띄우는 셸(이슈 #6의 8번).
+# 웹 샘플을 그대로 싣기만 하고 Rust 명령·플러그인은 두지 않는다.
+[package]
+name = "multi-feature-tauri"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[lib]
+name = "multi_feature_tauri_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [] }
+
+[dependencies]
+tauri = { version = "=2.12.5", features = [] }

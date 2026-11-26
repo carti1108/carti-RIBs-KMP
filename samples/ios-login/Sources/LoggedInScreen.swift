@@ -2,7 +2,7 @@ import LoginShared
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// 로그인 상태 RIB의 뷰. 머리말과 자식 RIB 화면(목록·상세) 하나를 그린다.
+/// 로그인 상태 RIB의 어댑터. 자식 RIB 화면(목록·상세) 슬롯을 `LoggedInView`의 child로 넘긴다.
 @MainActor
 @Observable
 final class LoggedInScreen: NSObject, @preconcurrency LoggedInViewContract, SwiftUIRenderable {
@@ -10,7 +10,7 @@ final class LoggedInScreen: NSObject, @preconcurrency LoggedInViewContract, Swif
     private(set) var state = LoggedInViewState(userName: "", sessionSeconds: 0)
     @ObservationIgnored let slot = RIBScreenSlot()
 
-    func render(state: LoggedInViewState) {
+    func renderLoggedIn(state: LoggedInViewState) {
         self.state = state
     }
 
@@ -23,23 +23,21 @@ final class LoggedInScreen: NSObject, @preconcurrency LoggedInViewContract, Swif
     }
 
     func makeView() -> AnyView {
-        AnyView(LoggedInView(screen: self))
+        AnyView(LoggedInScreenView(screen: self))
     }
 }
 
-private struct LoggedInView: View {
+/// 관찰 가능한 어댑터 상태를 읽어 순수 뷰에 값으로 넘긴다.
+private struct LoggedInScreenView: View {
     let screen: LoggedInScreen
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("\(screen.state.userName)님, 환영합니다").font(.title2.bold()).accessibilityIdentifier("welcomeLabel")
-            Text("로그인 \(screen.state.sessionSeconds)초").accessibilityIdentifier("sessionLabel")
-            Button("로그아웃") { screen.listener?.didTapLogout() }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("logoutButton")
+        LoggedInView(
+            userName: screen.state.userName,
+            sessionSeconds: Int(screen.state.sessionSeconds),
+            onLogout: { [weak screen] in screen?.listener?.didTapLogout() }
+        ) {
             RIBSlotView(slot: screen.slot)
-            Spacer()
         }
-        .padding(24)
     }
 }

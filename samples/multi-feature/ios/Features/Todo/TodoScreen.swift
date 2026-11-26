@@ -2,46 +2,44 @@ import AppShared
 import RIBsKMPSwiftUI
 import SwiftUI
 
-/// 할 일 피처의 뷰. Kotlin `Array<TodoItem>`은 Swift에서 `KotlinArray`라 배열로 바꿔 둔다.
+/// 할 일 피처의 어댑터. Kotlin `Array<TodoItem>`은 Swift에서 `KotlinArray`라 `TodoRow` 배열로 바꿔 넘긴다.
 @MainActor
 @Observable
 public final class TodoScreen: NSObject, @preconcurrency TodoViewContract, SwiftUIRenderable {
     @ObservationIgnored public weak var listener: (any TodoPresentableListener)?
     private(set) var userName = ""
-    private(set) var items: [TodoItem] = []
+    private(set) var rows: [TodoRow] = []
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
 
     override public init() {}
 
-    public func render(state: TodoViewState) {
+    public func renderTodo(state: TodoViewState) {
         userName = state.userName
-        items = (0..<state.items.size).compactMap { state.items.get(index: $0) }
+        rows = (0..<state.items.size).compactMap { state.items.get(index: $0) }
+            .map { TodoRow(id: $0.id, title: $0.title, isDone: $0.isDone) }
+        isLoading = state.isLoading
+        errorMessage = state.errorMessage
     }
 
     public func makeView() -> AnyView {
-        AnyView(TodoView(screen: self))
+        AnyView(TodoScreenView(screen: self))
     }
 }
 
-private struct TodoView: View {
+/// 관찰 가능한 어댑터 상태를 읽어 순수 뷰에 값으로 넘긴다.
+private struct TodoScreenView: View {
     let screen: TodoScreen
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("\(screen.userName)님의 할 일")
-                .font(.title2.bold())
-                .accessibilityIdentifier("welcomeLabel")
-            ForEach(screen.items, id: \.id) { item in
-                Button {
-                    screen.listener?.didToggle(id: item.id)
-                } label: {
-                    Label(item.title, systemImage: item.isDone ? "checkmark.square" : "square")
-                }
-                .accessibilityIdentifier("todoRow-\(item.id)")
-                .accessibilityValue(item.isDone ? "done" : "todo")
-            }
-            Button("설정") { screen.listener?.didTapSettings() }
-                .accessibilityIdentifier("settingsButton")
-        }
-        .padding(24)
+        TodoView(
+            userName: screen.userName,
+            rows: screen.rows,
+            isLoading: screen.isLoading,
+            errorMessage: screen.errorMessage,
+            onToggle: { [weak screen] id in screen?.listener?.didToggle(id: id) },
+            onRetry: { [weak screen] in screen?.listener?.didTapRetry() },
+            onSettings: { [weak screen] in screen?.listener?.didTapSettings() }
+        )
     }
 }

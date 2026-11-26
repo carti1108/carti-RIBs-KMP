@@ -37,3 +37,8 @@
 | [ADR-0009](ADR-0009-web-bridge-via-kotlin-view-store.md) | 웹(React) 연동은 Kotlin이 뷰 인터페이스를 구현하고 화면 상태 저장소를 내보낸다 | 채택 | 2026-11-12 |
 | [ADR-0010](ADR-0010-uber-ribs-ios-as-reference.md) | Uber RIBs-iOS를 원본으로 삼는다 | 채택 | 2026-11-13 |
 | [ADR-0011](ADR-0011-pure-view-and-adapter.md) | 샘플 플랫폼 뷰는 순수 뷰와 어댑터로 나눈다 | 채택 | 2026-11-25 |
+| [ADR-0012](ADR-0012-sample-todo-data-layer.md) | multi-feature 샘플의 데이터 계층은 `todo-data` 모듈에 두고 JSON은 kotlinx.serialization으로 읽는다 | 채택 | 2026-11-26 |
+| [ADR-0013](ADR-0013-ktor-http-transport.md) | HTTP 전송은 Ktor 클라이언트 하나로 구현하고 엔진은 타깃별 의존성으로 고른다 | 채택 | 2026-11-26 |
+| [ADR-0014](ADR-0014-write-requests-auth-problem-details.md) | 쓰기 요청·인증 헤더·상태 분류는 공유 데이터 계층이 하고, 전송은 받은 요청을 그대로 보낸다 | 채택 | 2026-11-26 |
+| [ADR-0015](ADR-0015-unauthorized-path-and-token-refresh.md) | 401은 저장소 오류 `Unauthorized`로 피처에 올리고, 토큰 갱신은 `BearerTokenTransport`가 한 번만 한다 | 채택 | 2026-11-26 |
+| [ADR-0016](ADR-0016-platform-input-as-view-action.md) | 클립보드·파일 같은 플랫폼 입력은 뷰가 다루고, 결과 하나만 뷰 동작으로 넘긴다 | 채택 | 2026-11-26 |

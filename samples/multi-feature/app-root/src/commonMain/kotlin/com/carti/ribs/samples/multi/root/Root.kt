@@ -17,6 +17,8 @@ import com.carti.ribs.samples.multi.signup.SignupListener
 import com.carti.ribs.samples.multi.todo.TodoBuildable
 import com.carti.ribs.samples.multi.todo.TodoDependency
 import com.carti.ribs.samples.multi.todo.TodoListener
+import com.carti.ribs.samples.multi.todo.TodoRepository
+import com.carti.ribs.samples.multi.todo.TodoViewFactory
 
 /** 루트 뷰 계약. 자식 RIB 화면 하나를 보여 준다. */
 interface RootViewControllable : ViewControllable {
@@ -27,17 +29,19 @@ interface RootViewControllable : ViewControllable {
 /**
  * 앱 최상단 의존성. 플랫폼이 구현한다.
  * 피처마다 자기 `XxxDependency`(뷰 생성 함수)를 선언하고, 여기서는 그것들을 합치기만 한다.
+ * 할 일 피처는 저장소도 필요한데, 저장소는 플랫폼이 아니라 [RootComponent]가 넣으므로 뷰 부분([TodoViewFactory])만 받는다.
  */
-interface RootDependency : LoginDependency, SignupDependency, TodoDependency, SettingsDependency {
+interface RootDependency : LoginDependency, SignupDependency, TodoViewFactory, SettingsDependency {
     fun makeRootView(): RootViewControllable
 }
 
-/** 피처 의존성을 플랫폼 구현에 위임한다. */
-class RootComponent(dependency: RootDependency) :
+/** 뷰 생성은 플랫폼 구현에 위임하고, 저장소는 조립하는 쪽에서 받는다. */
+class RootComponent(dependency: RootDependency, override val todoRepository: TodoRepository) :
     Component<RootDependency>(dependency),
     LoginDependency by dependency,
     SignupDependency by dependency,
-    TodoDependency by dependency,
+    TodoViewFactory by dependency,
+    TodoDependency,
     SettingsDependency by dependency
 
 /**
@@ -89,6 +93,9 @@ class RootInteractor : Interactor(), LoginListener, SignupListener, TodoListener
     override fun didCloseSettings() {
         router?.routeAwayFromSettings()
     }
+
+    /** 인증이 거절되면 로그아웃과 같은 경로로 로그인 화면에 돌아간다. */
+    override fun didRequireSignIn() = didRequestLogout()
 
     override fun didRequestLogout() {
         userName = null

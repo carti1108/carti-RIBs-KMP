@@ -50,7 +50,14 @@ final class RootScreen: NSObject, @preconcurrency RootViewControllable, SwiftUIR
 @MainActor
 final class AppLauncher: NSObject, @preconcurrency ViewHost {
     let windowSlot = RIBScreenSlot()
-    private lazy var app = MultiFeatureApp(dependency: AppComponent())
+    /// 실행 인자 `-todoBaseURL <주소>`가 있으면 그 서버로 실제 요청을 보낸다(Ktor Darwin 엔진, ADR-0013).
+    /// 없으면 앱 안의 샘플 서버를 쓴다.
+    private lazy var app: MultiFeatureApp = {
+        if let baseURL = UserDefaults.standard.string(forKey: "todoBaseURL") {
+            return MultiFeatureApp(dependency: AppComponent(), todoBaseUrl: baseURL)
+        }
+        return MultiFeatureApp(dependency: AppComponent())
+    }()
     private var isStarted = false
 
     func start() {

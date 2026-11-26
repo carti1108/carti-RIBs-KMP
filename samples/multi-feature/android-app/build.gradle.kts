@@ -31,6 +31,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.ui.tooling.preview)
 
+    // 기기에서 Ktor 전송으로 쓰기 요청을 확인한다(KtorHttpTransportDeviceTest).
+    androidTestImplementation(project(":samples:multi-feature:data:todo-data"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.junit)
