@@ -29,6 +29,9 @@ class TodoInteractor(
     private var isLoading = false
     private var errorMessage: String? = null
 
+    /** 플랫폼 입력의 결과 문구. [render]가 한 번 내보내면 지운다. */
+    private var notice: String? = null
+
     override fun didBecomeActive() {
         presenter.listener = this
         if (items == null) load() else render()
@@ -47,6 +50,28 @@ class TodoInteractor(
 
     override fun didTapSettings() {
         listener.didRequestSettings()
+    }
+
+    override fun didCopyList(succeeded: Boolean) {
+        notice = if (succeeded) COPIED else COPY_FAILED
+        render()
+    }
+
+    /** 줄마다 앞뒤 공백을 지우고 빈 줄을 건너뛰어 할 일로 더한다. 한 번에 [MAX_IMPORTED_TODOS]개까지다. */
+    override fun didReceiveFile(name: String, text: String) {
+        val current = items
+        if (current == null) {
+            // 뒤이어 불러온 목록이 덮어쓰므로 불러오기 전에는 더하지 않는다.
+            notice = NOT_LOADED
+            render()
+            return
+        }
+        val titles = text.lineSequence().map(String::trim).filter(String::isNotEmpty).toList()
+        val added = titles.take(MAX_IMPORTED_TODOS)
+        val firstId = (current.maxOfOrNull { it.id } ?: 0) + 1
+        items = current + added.mapIndexed { index, title -> TodoItem(firstId + index, title, isDone = false) }
+        notice = importNotice(name, added.size, skipped = titles.size - added.size)
+        render()
     }
 
     /** 이미 불러오는 중이면 요청을 하나 더 보내지 않는다. */
@@ -86,12 +111,26 @@ class TodoInteractor(
                 items = items.orEmpty().toTypedArray(),
                 isLoading = isLoading,
                 errorMessage = errorMessage,
+                notice = notice,
             ),
         )
+        notice = null
     }
 
     companion object {
         const val LOAD_ERROR: String = "할 일 목록을 불러오지 못했습니다"
+        const val COPIED: String = "목록을 복사했습니다"
+        const val COPY_FAILED: String = "목록을 복사하지 못했습니다"
+        const val NOT_LOADED: String = "목록을 불러온 뒤에 파일을 더하세요"
+
+        /** 한 파일에서 한 번에 더하는 최대 개수. 뷰는 파일의 앞부분만 읽어 넘긴다. */
+        const val MAX_IMPORTED_TODOS: Int = 100
+
+        private fun importNotice(name: String, added: Int, skipped: Int): String = when {
+            added == 0 -> "${name}에 더할 줄이 없습니다"
+            skipped == 0 -> "${name}에서 ${added}개를 더했습니다"
+            else -> "${name}에서 ${added}개를 더했습니다. ${skipped}줄은 한 번에 더할 수 있는 수를 넘어 건너뛰었습니다"
+        }
     }
 }
 

@@ -118,7 +118,7 @@ class WebSignupView : SignupViewContract, WebViewControllable {
 @JsExport
 class WebTodoView : TodoViewContract, WebViewControllable {
     override val screenKey: String = "todo"
-    val store: ViewStore<TodoViewState> = ViewStore(TodoViewState(userName = "", items = emptyArray(), isLoading = false, errorMessage = null))
+    val store: ViewStore<TodoViewState> = ViewStore(TodoViewState(userName = "", items = emptyArray(), isLoading = false, errorMessage = null, notice = null))
 
     @JsExport.Ignore
     override var listener: TodoPresentableListener? = null
@@ -133,6 +133,16 @@ class WebTodoView : TodoViewContract, WebViewControllable {
 
     fun retry() {
         listener?.didTapRetry()
+    }
+
+    /** React 뷰가 클립보드에 쓴 결과(ADR-0016). */
+    fun copied(succeeded: Boolean) {
+        listener?.didCopyList(succeeded)
+    }
+
+    /** React 뷰가 고르거나 끌어다 놓은 파일의 앞부분 텍스트(ADR-0016). */
+    fun fileReceived(name: String, text: String) {
+        listener?.didReceiveFile(name, text)
     }
 
     @JsExport.Ignore

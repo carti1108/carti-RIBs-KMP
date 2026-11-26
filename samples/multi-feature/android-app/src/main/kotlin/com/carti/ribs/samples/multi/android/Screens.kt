@@ -99,7 +99,7 @@ class SignupScreen : SignupViewContract, ComposeRenderable {
 
 class TodoScreen : TodoViewContract, ComposeRenderable {
     override var listener: TodoPresentableListener? = null
-    private var state by mutableStateOf(TodoViewState(userName = "", items = emptyArray(), isLoading = false, errorMessage = null))
+    private var state by mutableStateOf(TodoViewState(userName = "", items = emptyArray(), isLoading = false, errorMessage = null, notice = null))
 
     override fun render(state: TodoViewState) {
         this.state = state

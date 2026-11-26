@@ -208,6 +208,69 @@ class MultiFeatureAppTest {
     }
 
     @Test
+    fun copyResultIsShownAsNoticeAndClearedByNextAction() {
+        val todo = login("kim")
+
+        todo.listener!!.didCopyList(succeeded = true)
+        assertEquals(COPIED, todo.state!!.notice)
+
+        todo.listener!!.didCopyList(succeeded = false)
+        assertEquals(COPY_FAILED, todo.state!!.notice)
+
+        todo.listener!!.didToggle(todo.state!!.items.first().id)
+        assertNull(todo.state!!.notice)
+    }
+
+    @Test
+    fun receivedFileAddsTrimmedNonBlankLinesAfterExistingItems() {
+        val todo = login("kim")
+
+        todo.listener!!.didReceiveFile("할일.txt", "  빨래 \r\n\n\t청소\n   \n")
+
+        val items = todo.state!!.items.toList()
+        assertEquals(listOf("우유 사기", "운동하기", "빨래", "청소"), items.map { it.title })
+        assertEquals(listOf(1, 2, 3, 4), items.map { it.id })
+        assertTrue(items.drop(2).none { it.isDone })
+        assertEquals("할일.txt에서 2개를 더했습니다", todo.state!!.notice)
+    }
+
+    @Test
+    fun receivedFileAddsAtMostLimitAndReportsSkippedLines() {
+        val todo = login("kim")
+        val lines = (1..105).joinToString("\n") { "항목 $it" }
+
+        todo.listener!!.didReceiveFile("많음.txt", lines)
+
+        assertEquals(2 + 100, todo.state!!.items.size)
+        assertEquals("항목 100", todo.state!!.items.last().title)
+        assertEquals("많음.txt에서 100개를 더했습니다. 5줄은 한 번에 더할 수 있는 수를 넘어 건너뛰었습니다", todo.state!!.notice)
+    }
+
+    @Test
+    fun receivedFileWithoutLinesReportsNothingAdded() {
+        val todo = login("kim")
+
+        todo.listener!!.didReceiveFile("빈.txt", " \n\n")
+
+        assertEquals(2, todo.state!!.items.size)
+        assertEquals("빈.txt에 더할 줄이 없습니다", todo.state!!.notice)
+    }
+
+    @Test
+    fun receivedFileBeforeListLoadsIsNotAdded() {
+        repository.gate = CompletableDeferred()
+        val todo = login("kim")
+
+        todo.listener!!.didReceiveFile("할일.txt", "빨래")
+
+        assertTrue(todo.state!!.items.isEmpty())
+        assertEquals("목록을 불러온 뒤에 파일을 더하세요", todo.state!!.notice)
+        repository.gate!!.complete(Unit)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(FakeTodoRepository.ITEMS, todo.state!!.items.toList())
+    }
+
+    @Test
     fun unauthorizedReturnsToLoginWithoutShowingError() {
         repository.failure = TodoRepositoryException.Unauthorized("가짜 401")
         (views.root.current as FakeLoginView).listener!!.didTapLogin("kim")
@@ -276,6 +339,8 @@ class MultiFeatureAppTest {
     private companion object {
         const val EMPTY_NAME_ERROR = "이름을 입력하세요"
         const val LOAD_ERROR = "할 일 목록을 불러오지 못했습니다"
+        const val COPIED = "목록을 복사했습니다"
+        const val COPY_FAILED = "목록을 복사하지 못했습니다"
     }
 }
 

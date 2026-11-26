@@ -15,19 +15,32 @@ import kotlin.js.JsExport
 @JsExport
 data class TodoItem(val id: Int, val title: String, val isDone: Boolean)
 
-/** [isLoading] 동안에는 [items]가 비어 있다. 불러오기에 실패하면 [errorMessage]가 있다. */
+/**
+ * [isLoading] 동안에는 [items]가 비어 있다. 불러오기에 실패하면 [errorMessage]가 있다.
+ * [notice]는 복사·파일 같은 플랫폼 입력의 결과 문구다. 다음 동작으로 다시 그릴 때 지워진다.
+ */
 @JsExport
 class TodoViewState(
     val userName: String,
     val items: Array<TodoItem>,
     val isLoading: Boolean,
     val errorMessage: String?,
+    val notice: String?,
 )
 
+/**
+ * 뷰가 코어로 보내는 동작. 클립보드·파일 같은 플랫폼 입력은 뷰가 플랫폼 API로 처리하고 결과 하나만 넘긴다(ADR-0016).
+ */
 interface TodoPresentableListener {
     fun didToggle(id: Int)
     fun didTapSettings()
     fun didTapRetry()
+
+    /** 뷰가 목록 제목들을 클립보드에 썼다. 권한 거절 등으로 실패하면 [succeeded]가 false다. */
+    fun didCopyList(succeeded: Boolean)
+
+    /** 파일을 받았다(선택이든 끌어다 놓기든). [text]는 뷰가 읽은 텍스트로, 뷰가 앞부분만 읽어 크기를 제한한다. */
+    fun didReceiveFile(name: String, text: String)
 }
 
 interface TodoPresentable : Presentable {
