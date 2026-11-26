@@ -38,3 +38,4 @@
 | [ADR-0010](ADR-0010-uber-ribs-ios-as-reference.md) | Uber RIBs-iOS를 원본으로 삼는다 | 채택 | 2026-11-13 |
 | [ADR-0011](ADR-0011-pure-view-and-adapter.md) | 샘플 플랫폼 뷰는 순수 뷰와 어댑터로 나눈다 | 채택 | 2026-11-25 |
 | [ADR-0012](ADR-0012-sample-todo-data-layer.md) | multi-feature 샘플의 데이터 계층은 `todo-data` 모듈에 두고 JSON은 kotlinx.serialization으로 읽는다 | 채택 | 2026-11-26 |
+| [ADR-0013](ADR-0013-ktor-http-transport.md) | HTTP 전송은 Ktor 클라이언트 하나로 구현하고 엔진은 타깃별 의존성으로 고른다 | 채택 | 2026-11-26 |
