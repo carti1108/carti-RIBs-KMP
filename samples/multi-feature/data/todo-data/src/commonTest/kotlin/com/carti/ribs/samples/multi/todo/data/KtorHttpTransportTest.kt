@@ -6,8 +6,11 @@ import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
+import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -48,6 +51,47 @@ class KtorHttpTransportTest {
         val transport = transport { respond("""[{"title":"우유"}]""", HttpStatusCode.OK, TEXT_UTF8) }
 
         assertEquals("""[{"title":"우유"}]""", transport.send(HttpRequest(URL)).body)
+    }
+
+    @Test
+    fun sendsMethodHeadersAndUtf8Body() = runTest {
+        var seen: HttpRequestData? = null
+        var seenBody: String? = null
+        val transport = transport { request ->
+            seen = request
+            seenBody = (request.body as TextContent).text
+            respond("", HttpStatusCode.Created)
+        }
+
+        transport.send(
+            HttpRequest(
+                url = URL,
+                method = RequestMethod.PATCH,
+                headers = mapOf("Authorization" to "Bearer abc", "Content-Type" to "application/json"),
+                body = """{"title":"한글"}""",
+            ),
+        )
+
+        val request = checkNotNull(seen)
+        assertEquals(HttpMethod.Patch, request.method)
+        assertEquals("Bearer abc", request.headers["Authorization"])
+        assertEquals(ContentType.Application.Json, request.body.contentType?.withoutParameters())
+        assertEquals("""{"title":"한글"}""", seenBody)
+    }
+
+    @Test
+    fun deleteWithoutBodySendsNoContent() = runTest {
+        var seen: HttpRequestData? = null
+        val transport = transport { request ->
+            seen = request
+            respond("", HttpStatusCode.NoContent)
+        }
+
+        val response = transport.send(HttpRequest(URL, method = RequestMethod.DELETE))
+
+        assertEquals(204, response.statusCode)
+        assertEquals(HttpMethod.Delete, checkNotNull(seen).method)
+        assertIs<OutgoingContent.NoContent>(checkNotNull(seen).body)
     }
 
     @Test

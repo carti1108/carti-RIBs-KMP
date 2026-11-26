@@ -38,17 +38,25 @@ class RemoteTodoRepositoryTest {
 
         val error = assertFailsWith<TodoRepositoryException.Unavailable> { repository.fetchTodos() }
 
-        assertIs<IllegalArgumentException>(error.cause)
+        assertIs<TodoApiException.InvalidResponse>(error.cause)
     }
 
     @Test
     fun transportFailureIsUnavailable() = runTest {
-        val failure = HttpTransportException("연결 실패")
-        val repository = RemoteTodoRepository(FakeTransport { throw failure }, BASE_URL)
+        val repository = RemoteTodoRepository(FakeTransport { throw HttpTransportException("연결 실패") }, BASE_URL)
 
         val error = assertFailsWith<TodoRepositoryException.Unavailable> { repository.fetchTodos() }
 
-        assertEquals(failure, error.cause)
+        assertIs<TodoApiException.Unreachable>(error.cause)
+    }
+
+    @Test
+    fun unauthorizedIsStillUnavailableUntilFeatureHandlesIt() = runTest {
+        val repository = RemoteTodoRepository(FakeTransport { HttpResponse(401, "") }, BASE_URL)
+
+        val error = assertFailsWith<TodoRepositoryException.Unavailable> { repository.fetchTodos() }
+
+        assertIs<TodoApiException.Unauthorized>(error.cause)
     }
 
     @Test

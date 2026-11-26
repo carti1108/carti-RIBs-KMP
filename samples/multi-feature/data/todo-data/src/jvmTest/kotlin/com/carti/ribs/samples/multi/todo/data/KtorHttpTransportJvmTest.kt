@@ -45,6 +45,42 @@ class KtorHttpTransportJvmTest {
     }
 
     @Test
+    fun createTodoSendsBearerTokenAndUtf8JsonBody() = runBlocking {
+        val seen = recordRequests(201, """{"id":5,"title":"한글 제목","done":false}""")
+        val client = TodoApiClient(BearerTokenTransport(KtorHttpTransport()) { "token-1" }, baseUrl)
+
+        val created = client.createTodo("한글 제목")
+
+        assertEquals("한글 제목", created.title)
+        val request = seen.single()
+        assertEquals("POST", request.method)
+        assertEquals("Bearer token-1", request.authorization)
+        assertTrue(request.contentType.orEmpty().startsWith("application/json"), "got ${request.contentType}")
+        assertEquals("""{"title":"한글 제목"}""", request.body)
+    }
+
+    @Test
+    fun patchSendsBodyAndDeleteSendsNone() = runBlocking {
+        val seen = recordRequests(204, "")
+        val transport = KtorHttpTransport()
+
+        transport.send(
+            HttpRequest(
+                "$baseUrl/todos/1",
+                RequestMethod.PATCH,
+                mapOf("Content-Type" to "application/json"),
+                """{"done":true}""",
+            ),
+        )
+        transport.send(HttpRequest("$baseUrl/todos/1", RequestMethod.DELETE))
+
+        assertEquals(listOf("PATCH", "DELETE"), seen.map { it.method })
+        assertEquals("""{"done":true}""", seen[0].body)
+        assertEquals("", seen[1].body)
+        assertEquals(null, seen[1].contentType)
+    }
+
+    @Test
     fun refusedConnectionIsTransportFailure() = runBlocking {
         val closedPort = ServerSocket(0).use { it.localPort }
 
@@ -90,6 +126,32 @@ class KtorHttpTransportJvmTest {
 
         assertTrue(thrown is CancellationException, "got $thrown")
         assertTrue(connectionClosed.await(WAIT_SECONDS, TimeUnit.SECONDS), "서버가 연결 끊김을 보지 못했다")
+    }
+
+    private class SeenRequest(
+        val method: String,
+        val authorization: String?,
+        val contentType: String?,
+        val body: String,
+    )
+
+    /** /todos 아래로 오는 요청을 기록하고 [status]·[body]로 답한다. */
+    private fun recordRequests(status: Int, body: String): List<SeenRequest> {
+        val seen = java.util.Collections.synchronizedList(mutableListOf<SeenRequest>())
+        server.createContext("/todos") { exchange ->
+            seen += SeenRequest(
+                method = exchange.requestMethod,
+                authorization = exchange.requestHeaders.getFirst("Authorization"),
+                contentType = exchange.requestHeaders.getFirst("Content-Type"),
+                body = exchange.requestBody.readBytes().decodeToString(),
+            )
+            val bytes = body.encodeToByteArray()
+            exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
+            exchange.sendResponseHeaders(status, if (bytes.isEmpty()) -1 else bytes.size.toLong())
+            if (bytes.isNotEmpty()) exchange.responseBody.use { it.write(bytes) } else exchange.close()
+        }
+        server.start()
+        return seen
     }
 
     private companion object {
