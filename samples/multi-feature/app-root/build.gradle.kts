@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.android.kmp.library)
 }
 
-// 루트 RIB과 플랫폼 진입점. 피처 impl을 아는 유일한 모듈이다. 피처끼리는 서로의 -api만 안다.
+// 루트 RIB과 플랫폼 진입점. 피처 impl과 데이터 계층을 아는 유일한 모듈이다. 피처끼리는 서로의 -api만 안다.
 kotlin {
     jvm()
     android {
@@ -28,6 +28,7 @@ kotlin {
             implementation(project(":samples:multi-feature:feature:signup-impl"))
             implementation(project(":samples:multi-feature:feature:todo-impl"))
             implementation(project(":samples:multi-feature:feature:settings-impl"))
+            implementation(project(":samples:multi-feature:data:todo-data"))
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

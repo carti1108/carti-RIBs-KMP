@@ -9,6 +9,8 @@ public final class TodoScreen: NSObject, @preconcurrency TodoViewContract, Swift
     @ObservationIgnored public weak var listener: (any TodoPresentableListener)?
     private(set) var userName = ""
     private(set) var rows: [TodoRow] = []
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
 
     override public init() {}
 
@@ -17,6 +19,8 @@ public final class TodoScreen: NSObject, @preconcurrency TodoViewContract, Swift
         userName = state.userName
         rows = (0..<state.items.size).compactMap { state.items.get(index: $0) }
             .map { TodoRow(id: $0.id, title: $0.title, isDone: $0.isDone) }
+        isLoading = state.isLoading
+        errorMessage = state.errorMessage
     }
 
     public func makeView() -> AnyView {
@@ -32,7 +36,10 @@ private struct TodoScreenView: View {
         TodoView(
             userName: screen.userName,
             rows: screen.rows,
+            isLoading: screen.isLoading,
+            errorMessage: screen.errorMessage,
             onToggle: { [weak screen] id in screen?.listener?.didToggle(id: id) },
+            onRetry: { [weak screen] in screen?.listener?.didTapRetry() },
             onSettings: { [weak screen] in screen?.listener?.didTapSettings() }
         )
     }

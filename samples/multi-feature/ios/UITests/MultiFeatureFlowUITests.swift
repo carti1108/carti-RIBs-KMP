@@ -26,6 +26,8 @@ final class MultiFeatureFlowUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["welcomeLabel"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.staticTexts["welcomeLabel"].label, "carti님의 할 일")
+        // 목록은 샘플 서버에서 비동기로 불러온다
+        XCTAssertTrue(app.buttons["todoRow-1"].waitForExistence(timeout: 2))
         app.buttons["todoRow-1"].tap()
 
         app.buttons["settingsButton"].tap()

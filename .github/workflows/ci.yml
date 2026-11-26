@@ -1,0 +1,111 @@
+# 라이브러리와 샘플의 빌드·테스트(이슈 #6의 6번).
+# - check: 코어 검사(테스트·공개 API·공유 코드 규칙)와 모든 멀티플랫폼 모듈의 JVM·JS(Node·ChromeHeadless) 테스트
+# - web: 웹 샘플 두 개의 Kotlin/JS 빌드, 타입 검사, Vitest, 릴리스 번들
+# - android: Android 샘플 두 개의 빌드와 에뮬레이터 계측 테스트
+# iOS 잡은 아직 없다. iOS 샘플을 Mac에서 한 번도 빌드하지 않아 먼저 Mac에서 확인한 뒤 더한다(docs/handoff.md).
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # 같은 저장소 브랜치의 PR은 그 브랜치의 push로 이미 돈다. pull_request로는 포크 PR만 돌린다.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      # Ubuntu 24.04는 비특권 사용자 네임스페이스를 AppArmor로 막아 Chrome 샌드박스가 뜨지 않는다(jsBrowserTest).
+      - name: Chrome 샌드박스 허용
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: 코어 검사와 멀티플랫폼 테스트
+        run: ./gradlew :ribs-core:check allTests --continue
+      - name: 테스트 보고서
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: check-reports
+          path: '**/build/reports/tests/'
+          if-no-files-found: ignore
+
+  web:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            samples/web-login/react/package-lock.json
+            samples/multi-feature/export/web-app/react/package-lock.json
+      - name: Kotlin/JS 라이브러리
+        run: >-
+          ./gradlew
+          :samples:web-login:jsBrowserProductionLibraryDistribution
+          :samples:multi-feature:export:web-app:jsBrowserProductionLibraryDistribution
+      - name: web-login
+        working-directory: samples/web-login/react
+        run: npm ci && npm test && npm run build
+      # 테스트가 Node HTTP 서버로 실제 요청을 보낸다(ADR-0013).
+      - name: multi-feature 웹
+        working-directory: samples/multi-feature/export/web-app/react
+        run: npm ci && npm test && npm run build
+
+  android:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: 앱과 계측 테스트 APK 빌드
+        run: >-
+          ./gradlew
+          :samples:android-login:assembleDebug :samples:android-login:assembleDebugAndroidTest
+          :samples:multi-feature:android-app:assembleDebug :samples:multi-feature:android-app:assembleDebugAndroidTest
+      - name: KVM 허용
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      # 계측 테스트는 기기 안 테스트 서버(127.0.0.1)로 실제 HTTP 요청을 보낸다(ADR-0013, ADR-0014).
+      - name: 에뮬레이터 계측 테스트
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: ./gradlew :samples:android-login:connectedDebugAndroidTest :samples:multi-feature:android-app:connectedDebugAndroidTest
+      - name: 계측 테스트 보고서
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports
+          path: '**/build/reports/androidTests/'
+          if-no-files-found: ignore

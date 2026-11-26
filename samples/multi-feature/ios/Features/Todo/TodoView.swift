@@ -11,7 +11,10 @@ struct TodoRow: Identifiable, Equatable {
 struct TodoView: View {
     let userName: String
     let rows: [TodoRow]
+    let isLoading: Bool
+    let errorMessage: String?
     let onToggle: (Int32) -> Void
+    let onRetry: () -> Void
     let onSettings: () -> Void
 
     var body: some View {
@@ -19,6 +22,16 @@ struct TodoView: View {
             Text("\(userName)님의 할 일")
                 .font(.title2.bold())
                 .accessibilityIdentifier("welcomeLabel")
+            if isLoading {
+                ProgressView().accessibilityIdentifier("loadingIndicator")
+            }
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("errorLabel")
+                Button("다시 시도", action: onRetry)
+                    .accessibilityIdentifier("retryButton")
+            }
             ForEach(rows) { row in
                 Button {
                     onToggle(row.id)
@@ -35,11 +48,26 @@ struct TodoView: View {
     }
 }
 
-#Preview {
+#Preview("목록") {
     TodoView(
         userName: "carti",
         rows: [TodoRow(id: 1, title: "장보기", isDone: false), TodoRow(id: 2, title: "운동", isDone: true)],
+        isLoading: false,
+        errorMessage: nil,
         onToggle: { _ in },
+        onRetry: {},
+        onSettings: {}
+    )
+}
+
+#Preview("오류") {
+    TodoView(
+        userName: "carti",
+        rows: [],
+        isLoading: false,
+        errorMessage: "할 일을 불러오지 못했습니다.",
+        onToggle: { _ in },
+        onRetry: {},
         onSettings: {}
     )
 }
