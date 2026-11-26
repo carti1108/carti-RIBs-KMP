@@ -11,8 +11,7 @@ public final class SignupScreen: NSObject, @preconcurrency SignupViewContract, S
 
     override public init() {}
 
-    // 다른 피처의 `render(state:)`와 Obj-C 셀렉터가 겹쳐 Kotlin/Native가 인자 이름을 바꿔 내보낸다(이슈 #3).
-    public func render(state__ state: SignupViewState) {
+    public func renderSignup(state: SignupViewState) {
         self.state = state
     }
 

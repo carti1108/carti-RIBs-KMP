@@ -1,7 +1,9 @@
-@file:OptIn(ExperimentalJsExport::class)
+@file:OptIn(ExperimentalJsExport::class, ExperimentalObjCName::class)
 
 package com.carti.ribs.samples.login
 
+import kotlin.experimental.ExperimentalObjCName
+import kotlin.native.ObjCName
 import com.carti.ribs.Builder
 import com.carti.ribs.Component
 import com.carti.ribs.Dependency
@@ -33,6 +35,9 @@ data class LoggedInViewState(val userName: String, val sessionSeconds: Int)
 interface LoggedInPresentable : Presentable {
     /** 활성 구간에만 설정된다. 플랫폼은 약한 참조로 둔다. */
     var listener: LoggedInPresentableListener?
+    // 계약마다 Obj-C 이름을 고정한다. 같은 `render(state:)`가 여러 계약에 있으면 Kotlin/Native가 Swift 인자 이름을
+    // 선언 순서대로 `state_`, `state__`…로 바꿔 내보내서, RIB이 늘 때마다 Swift 쪽 이름이 밀린다.
+    @ObjCName("renderLoggedIn")
     fun render(state: LoggedInViewState)
 }
 

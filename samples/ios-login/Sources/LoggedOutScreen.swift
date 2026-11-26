@@ -9,8 +9,7 @@ final class LoggedOutScreen: NSObject, @preconcurrency LoggedOutViewContract, Sw
     @ObservationIgnored weak var listener: (any LoggedOutPresentableListener)?
     private(set) var state = LoggedOutViewState(isLoading: false, errorMessage: nil)
 
-    // `LoggedInPresentable.render(state:)`와 Obj-C 셀렉터가 겹쳐 Kotlin/Native가 인자 이름을 `state_`로 바꿔 내보낸다.
-    func render(state_ state: LoggedOutViewState) {
+    func renderLoggedOut(state: LoggedOutViewState) {
         self.state = state
     }
 

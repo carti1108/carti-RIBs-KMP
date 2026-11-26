@@ -14,8 +14,7 @@ public final class TodoScreen: NSObject, @preconcurrency TodoViewContract, Swift
 
     override public init() {}
 
-    // 다른 피처의 `render(state:)`와 Obj-C 셀렉터가 겹쳐 Kotlin/Native가 인자 이름을 바꿔 내보낸다(이슈 #3).
-    public func render(state___ state: TodoViewState) {
+    public func renderTodo(state: TodoViewState) {
         userName = state.userName
         rows = (0..<state.items.size).compactMap { state.items.get(index: $0) }
             .map { TodoRow(id: $0.id, title: $0.title, isDone: $0.isDone) }
