@@ -6,7 +6,7 @@
 
 2026-11-26. Windows 11 Pro, Intel Core Ultra 9 185H, RAM 32GB. Gradle 9.7.1(데몬 JVM Temurin 21.0.13), Kotlin Gradle 플러그인 2.3.21, AGP 9.5.1, Gradle 빌드 캐시 켬(`org.gradle.caching=true`). Node 26.13.0, Vite 6.3.5.
 
-iOS는 Mac에서만 잴 수 있어 아래 표에 없습니다.
+iOS는 Mac에서 따로 쟀습니다(아래 "iOS 증분 빌드").
 
 ## 웹 산출물 크기
 
@@ -50,6 +50,25 @@ node -e "const fs=require('fs'),z=require('zlib');for(const f of fs.readdirSync(
 - 웹(Kotlin/JS)은 고친 모듈의 klib이 바뀌면 그 모듈에 의존하는 모듈의 컴파일 태스크가 모두 다시 돕니다. 코어 본문만 고쳐도 13개 모듈의 컴파일 태스크가 모두 실행됩니다. 마지막 링크(`compileProductionLibraryKotlinJs`)는 어떤 수정에서든 돕니다.
 - 고친 피처와 상관없는 피처가 다시 빌드되지 않는다는 점은 두 플랫폼 모두 확인됩니다(코어 수정은 예외).
 - 깨끗한 빌드 뒤 첫 "변경 없음"에서는 다른 타깃의 `clean`이 지운 산출물을 빌드 캐시에서 되살리느라 8.5초가 걸렸습니다. 표에는 두 번째 실행을 적었습니다.
+
+### iOS 증분 빌드
+
+2026-11-26, Mac에서 쟀습니다. Apple M1, RAM 8GB, macOS 27.0.1, Xcode 27.0. Gradle·Kotlin 버전과 빌드 캐시 설정은 위와 같고, 데몬 JVM은 Android Studio 내장 JBR 21입니다. 위 표와 PC가 달라서 두 표의 시간을 서로 비교하지 않습니다.
+
+- iOS: `./gradlew :samples:multi-feature:export:ios-app:assembleAppSharedDebugXCFramework` (`iosArm64`, `iosSimulatorArm64` 두 타깃을 컴파일·링크)
+
+| 시나리오 | 고친 곳 | iOS | iOS 다시 컴파일 |
+|---|---|---|---|
+| 깨끗한 빌드 | `clean` 뒤 `--no-build-cache` | 21.1초 | 모듈 13개 전부 + 링크 2개 |
+| 변경 없음 | - | 2.1초 | 없음 |
+| 피처 impl 본문 | `todo-impl` `Todo.kt`의 `require` 문구 | 11.3초 | `todo-impl`, `app-root`, `ios-app`, 링크 2개 |
+| 피처 api 공개 API | `todo-api`에 공개 함수 추가 | 11.3초 | `todo-api`, `todo-impl`, `todo-data`, `app-root`, `ios-app`, 링크 2개 |
+| 코어 본문 | `ribs-core` `Router.kt`의 오류 문구 | 11.9초 | 모듈 13개 전부 + 링크 2개 |
+
+- 타깃마다 컴파일과 링크가 따로 돌아서, 한 시나리오에서 실행되는 태스크 수는 웹의 두 배입니다. 고친 범위와 상관없이 11~12초로 비슷하게 걸리므로, 시간 대부분은 매번 도는 링크(`linkDebugFrameworkIos*`) 두 개가 차지하는 것으로 보입니다. 태스크별 시간을 따로 재지는 않았습니다.
+- 어떤 모듈이 다시 컴파일되는지는 웹과 같습니다. 고친 모듈의 klib이 바뀌면 그 모듈에 의존하는 모듈의 컴파일 태스크가 모두 돕니다. 코어 본문만 고쳐도 13개 모듈이 모두 다시 컴파일됩니다.
+- 깨끗한 빌드가 짧은 이유는 `~/.konan`의 Kotlin/Native 의존성 캐시(표준 라이브러리, 코루틴 등)가 남아 있기 때문입니다. `~/.konan`까지 비운 첫 빌드는 이보다 깁니다. CI 첫 실행에서 두 타깃 빌드가 6분 52초, 캐시가 찬 두 번째 실행에서 1분 39초였습니다(`docs/handoff.md`).
+- 이 시간에는 Xcode의 Swift 빌드가 들어 있지 않습니다. 개발 중에 시뮬레이터 하나만 쓴다면 `linkDebugFrameworkIosSimulatorArm64`만 돌려 링크를 하나로 줄일 수 있습니다.
 
 ## Windows 호스트에서 되는 범위
 
