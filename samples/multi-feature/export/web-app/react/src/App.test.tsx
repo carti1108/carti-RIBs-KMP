@@ -169,3 +169,85 @@ test('서버가 401이면 오류 없이 로그인 화면으로 돌아간다', as
   expect(screen.queryByRole('alert')).toBeNull()
   expect(requestCount).toBe(1)
 })
+
+// jsdom의 Blob에는 text()가 없다(실제 브라우저에는 있다). 테스트에서만 FileReader로 채운다
+if (!('text' in Blob.prototype)) {
+  Object.defineProperty(Blob.prototype, 'text', {
+    configurable: true,
+    value(this: Blob) {
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(reader.error)
+        reader.readAsText(this)
+      })
+    },
+  })
+}
+
+/** jsdom에는 navigator.clipboard가 없다. 테스트마다 넣고 afterEach에서 지운다 */
+function setClipboard(writeText: (text: string) => Promise<void>) {
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+}
+
+afterEach(() => {
+  Reflect.deleteProperty(navigator, 'clipboard')
+})
+
+async function openTodoList() {
+  startApp()
+  await loginAs('kim')
+  await screen.findAllByRole('checkbox')
+}
+
+test('목록 복사는 클립보드에 제목을 쓰고 결과를 알린다', async () => {
+  const writeText = vi.fn(() => Promise.resolve())
+  setClipboard(writeText)
+  await openTodoList()
+
+  fireEvent.click(screen.getByRole('button', { name: '목록 복사' }))
+
+  expect((await screen.findByRole('status')).textContent).toBe('목록을 복사했습니다')
+  expect(writeText).toHaveBeenCalledWith('우유 사기\n운동하기')
+})
+
+test('클립보드 쓰기가 거절되면 실패를 알린다', async () => {
+  setClipboard(() => Promise.reject(new Error('denied')))
+  await openTodoList()
+
+  fireEvent.click(screen.getByRole('button', { name: '목록 복사' }))
+
+  expect((await screen.findByRole('status')).textContent).toBe('목록을 복사하지 못했습니다')
+})
+
+test('파일을 고르면 줄마다 할 일로 더한다', async () => {
+  await openTodoList()
+  const file = new File(['  빨래 \n\n청소\n'], '할일.txt', { type: 'text/plain' })
+
+  fireEvent.change(screen.getByLabelText('파일에서 더하기'), { target: { files: [file] } })
+
+  expect((await screen.findByRole('status')).textContent).toBe('할일.txt에서 2개를 더했습니다')
+  expect(screen.getAllByRole('checkbox')).toHaveLength(4)
+  expect(screen.getByText('청소')).toBeTruthy()
+})
+
+test('파일을 끌어다 놓아도 같은 동작으로 더한다', async () => {
+  await openTodoList()
+  const file = new File(['장보기'], '놓은.txt', { type: 'text/plain' })
+
+  fireEvent.drop(screen.getByRole('main'), { dataTransfer: { files: [file] } })
+
+  expect((await screen.findByRole('status')).textContent).toBe('놓은.txt에서 1개를 더했습니다')
+  expect(screen.getByText('장보기')).toBeTruthy()
+})
+
+test('파일은 앞 64KB만 읽어 넘긴다', async () => {
+  await openTodoList()
+  const padding = ' '.repeat(70 * 1024)
+  const file = new File([`앞줄\n${padding}\n뒷줄`], '큰.txt', { type: 'text/plain' })
+
+  fireEvent.change(screen.getByLabelText('파일에서 더하기'), { target: { files: [file] } })
+
+  expect((await screen.findByRole('status')).textContent).toBe('큰.txt에서 1개를 더했습니다')
+  expect(screen.queryByText('뒷줄')).toBeNull()
+})

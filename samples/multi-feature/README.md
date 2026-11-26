@@ -15,7 +15,9 @@ ios/                  Tuist. Swift 피처 모듈 4개 + 앱 + LoginDemo
 
 화면 흐름: 로그인 ⇄ 가입 → 할 일 → 설정(할 일 위에 겹침) → 로그아웃. 설정을 닫으면 할 일 RIB이 붙어 있던 그대로 돌아옵니다.
 
-할 일 목록은 RIB이 활성화될 때 `TodoRepository`에서 불러옵니다. 실패하면 오류와 다시 시도 버튼을 보여 주고, RIB이 떨어지면 요청이 취소됩니다. 서버가 401을 주면 오류 없이 로그인 화면으로 돌아갑니다(ADR-0015). 서버 주소를 주면 Ktor로 실제 요청을 보내고, 주지 않으면 네트워크 없이 `SampleTodoServer`의 JSON을 씁니다(ADR-0012, ADR-0013).
+할 일 목록은 RIB이 활성화될 때 `TodoRepository`에서 불러옵니다. 실패하면 오류와 다시 시도 버튼을 보여 주고, RIB이 떨어지면 요청이 취소됩니다. 서버가 401을 주면 오류 없이 로그인 화면으로 돌아갑니다(ADR-0015).
+
+웹 할 일 화면은 목록 복사(클립보드)와 텍스트 파일 선택·끌어다 놓기를 지원합니다. 뷰가 브라우저 API를 부르고 결과 하나만 코어에 넘깁니다. 파일은 앞 64KB만 읽고 한 번에 100줄까지 더합니다(ADR-0016). 서버 주소를 주면 Ktor로 실제 요청을 보내고, 주지 않으면 네트워크 없이 `SampleTodoServer`의 JSON을 씁니다(ADR-0012, ADR-0013).
 
 | 플랫폼 | 서버 주소 | 없을 때 |
 |---|---|---|
@@ -48,8 +50,8 @@ iOS는 `MultiFeatureSample`(전체 앱)과 `LoginDemo`(로그인 피처만) 스�
 
 ## 확인 상태
 
-- 공유 흐름: JVM·JS 테스트 통과 (`MultiFeatureAppTest` 18개, `LoginDemoAppTest` 2개)
+- 공유 흐름: JVM·JS 테스트 통과 (`MultiFeatureAppTest` 23개, `LoginDemoAppTest` 2개)
 - 데이터 계층: JVM·JS 공통 45개, JVM 전용 실제 OkHttp `KtorHttpTransportJvmTest` 5개, 브라우저 전용 다른 출처 `CrossOriginApiBrowserTest` 5개
-- 웹: Vitest(테스트 서버로 실제 요청 포함) 6개·tsc 통과
+- 웹: Vitest(테스트 서버로 실제 요청, 클립보드·파일 입력 포함) 11개·tsc 통과
 - Android: 에뮬레이터(API 37) 계측 테스트 6개 통과(기기 안 서버로 실제 요청: 화면 흐름 1개, 쓰기 요청·401 분류 3개)
 - iOS: Windows에서 작성만 했고 Mac에서 빌드·UI 테스트로 확인하지 않았다

@@ -66,12 +66,45 @@ function SignupScreen({ view }: { view: WebSignupView }) {
   )
 }
 
+/** 파일에서 이만큼만 읽어 Kotlin으로 넘긴다. 큰 파일을 통째로 넘기지 않는다(ADR-0016) */
+const MAX_FILE_BYTES = 64 * 1024
+
 function TodoScreen({ view }: { view: WebTodoView }) {
   const state = useViewStore(view.store)
+
+  // 클립보드와 파일은 뷰가 브라우저 API로 다루고 결과 하나만 Kotlin에 넘긴다(ADR-0016)
+  const copyList = () => {
+    const text = state.items.map((item) => item.title).join('\n')
+    // 보안 컨텍스트가 아니거나 권한을 거절하면 clipboard가 없거나 writeText가 거절된다
+    if (navigator.clipboard === undefined) {
+      view.copied(false)
+      return
+    }
+    navigator.clipboard.writeText(text).then(
+      () => view.copied(true),
+      () => view.copied(false),
+    )
+  }
+  const receiveFile = (file: File | undefined) => {
+    if (file === undefined) return
+    // 앞부분만 읽는다. 바이트 경계에서 잘린 마지막 글자는 대체 문자가 될 수 있다
+    void file
+      .slice(0, MAX_FILE_BYTES)
+      .text()
+      .then((text) => view.fileReceived(file.name, text))
+  }
+
   return (
-    <main>
+    <main
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault()
+        receiveFile(event.dataTransfer.files[0])
+      }}
+    >
       <h1>{state.userName}님의 할 일</h1>
       {state.isLoading && <p role="status">불러오는 중</p>}
+      {state.notice != null && <p role="status">{state.notice}</p>}
       {state.errorMessage != null && (
         <>
           <p role="alert">{state.errorMessage}</p>
@@ -90,6 +123,22 @@ function TodoScreen({ view }: { view: WebTodoView }) {
           </li>
         ))}
       </ul>
+      <button type="button" onClick={copyList}>
+        목록 복사
+      </button>
+      <label>
+        파일에서 더하기
+        <input
+          type="file"
+          accept=".txt,text/plain"
+          onChange={(event) => {
+            receiveFile(event.target.files?.[0])
+            // 같은 파일을 다시 골라도 change가 나도록 비운다
+            event.target.value = ''
+          }}
+        />
+      </label>
+      <p>텍스트 파일을 화면에 끌어다 놓아도 줄마다 할 일로 더합니다</p>
       <button type="button" onClick={() => view.openSettings()}>
         설정
       </button>
