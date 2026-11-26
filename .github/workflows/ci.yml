@@ -2,7 +2,7 @@
 # - check: 코어 검사(테스트·공개 API·공유 코드 규칙)와 모든 멀티플랫폼 모듈의 JVM·JS(Node·ChromeHeadless) 테스트
 # - web: 웹 샘플 두 개의 Kotlin/JS 빌드, 타입 검사, Vitest, 릴리스 번들
 # - android: Android 샘플 두 개의 빌드와 에뮬레이터 계측 테스트
-# iOS 잡은 아직 없다. iOS 샘플을 Mac에서 한 번도 빌드하지 않아 먼저 Mac에서 확인한 뒤 더한다(docs/handoff.md).
+# - ios: Kotlin 프레임워크 두 개, Swift 어댑터 테스트, iOS 샘플 두 개의 XCUITest
 name: CI
 
 on:
@@ -108,4 +108,58 @@ jobs:
         with:
           name: android-reports
           path: '**/build/reports/androidTests/'
+          if-no-files-found: ignore
+
+  ios:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      # Kotlin/Native 컴파일러와 의존성(~/.konan)은 Kotlin 버전이 같으면 다시 받지 않는다.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+      - uses: jdx/mise-action@v5
+        with:
+          mise_toml: |
+            [tools]
+            tuist = "4.191.5"
+      - name: Kotlin 프레임워크
+        run: >-
+          ./gradlew
+          :samples:login-shared:assembleLoginSharedDebugXCFramework
+          :samples:multi-feature:export:ios-app:assembleAppSharedDebugXCFramework
+      - name: Swift 어댑터 테스트
+        working-directory: swift/RIBsKMPSwiftUI
+        run: swift test
+      # 러너 이미지마다 설치된 시뮬레이터가 달라 이름을 고정하지 않고 사용 가능한 첫 iPhone을 쓴다.
+      - name: 시뮬레이터 고르기
+        run: |
+          udid=$(xcrun simctl list devices available | grep -m1 -E '^ +iPhone' | grep -oE '[0-9A-F-]{36}')
+          test -n "$udid"
+          echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
+      - name: ios-login XCUITest
+        working-directory: samples/ios-login
+        run: |
+          tuist generate --no-open
+          xcodebuild test -workspace LoginSample.xcworkspace -scheme LoginSample -destination "id=$SIMULATOR_UDID"
+      - name: multi-feature XCUITest
+        working-directory: samples/multi-feature/ios
+        run: |
+          tuist generate --no-open
+          xcodebuild test -workspace MultiFeatureSample.xcworkspace -scheme MultiFeatureSample -destination "id=$SIMULATOR_UDID"
+      - name: XCUITest 결과
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-test-results
+          path: ~/Library/Developer/Xcode/DerivedData/*/Logs/Test/
           if-no-files-found: ignore
