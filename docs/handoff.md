@@ -14,7 +14,7 @@
 | 3. 쓰기 요청·인증·Problem Details·다른 출처 | [ADR-0014](adr/ADR-0014-write-requests-auth-problem-details.md) | 완료(iOS는 읽기 요청만 확인) |
 | 4. 401 경로·토큰 갱신 | [ADR-0015](adr/ADR-0015-unauthorized-path-and-token-refresh.md) | 완료 |
 | 5. 플랫폼 입력 브리지(웹) | [ADR-0016](adr/ADR-0016-platform-input-as-view-action.md) | 완료 |
-| 6. CI | `.github/workflows/ci.yml` (check, web, android) | iOS 잡 없음 |
+| 6. CI | `.github/workflows/ci.yml` (check, web, android, ios) | iOS 잡은 원격 첫 실행 전 |
 | 7. 실측 | [building.md](building.md) | 웹 크기 완료, iOS 증분 빌드 남음 |
 | 8. 실행 환경 | [building.md](building.md) "Windows 호스트", "Tauri" | Windows WebView2 완료, macOS WKWebView 남음 |
 
@@ -42,7 +42,8 @@ Windows에서는 iOS를 한 번도 빌드하지 못했습니다. 아래 순서�
 3. (완료) Darwin 엔진 실제 요청: 시뮬레이터에서 `-todoBaseURL http://127.0.0.1:<포트>/api`로 띄워 목록을 받는지. `http://`에 ATS 예외가 필요한지 확인합니다(Swift 쪽은 시뮬레이터 `127.0.0.1`에 필요 없었다). 이슈 #6의 3번 "세 플랫폼에서 실제 요청"은 iOS가 빠진 채 체크돼 있습니다.
    - 결과: `python3 -m http.server`로 `react/public`을 서빙하고 `-todoBaseURL http://127.0.0.1:8765/api`로 띄우니 서버 로그에 `GET /api/todos 200`이 찍히고 목록 3개가 보였다. ATS 예외 없이 됐다. 서버를 내리면 "할 일 목록을 불러오지 못했습니다"와 다시 시도 버튼이 나오고, 서버를 다시 올린 뒤 다시 시도하면 목록을 받는다. 쓰기 요청과 401은 iOS에서 확인하지 않았다(쓰는 피처가 없다).
 4. (완료, `feat/ios-pure-view-split`) 이슈 #4의 남은 일: `samples/ios-login`과 `multi-feature/ios/Features/*`를 순수 뷰와 어댑터로 분리(ADR-0011), Swift 스캐폴드 템플릿 컴파일.
-5. CI에 iOS 잡 추가(`macos-latest`, Kotlin/Native 캐시 `~/.konan`). 1~2가 통과한 뒤에 더합니다.
+5. (추가함, 원격 실행 전) CI에 iOS 잡 추가(`macos-latest`, Kotlin/Native 캐시 `~/.konan`). 1~2가 통과한 뒤에 더합니다.
+   - 잡 내용: XCFramework 2개, `swift test`(RIBsKMPSwiftUI), ios-login·multi-feature XCUITest. Tuist는 `jdx/mise-action`으로 4.191.5를 받는다. 시뮬레이터는 러너에 있는 첫 iPhone을 고른다. 같은 명령을 Mac에서 돌려 모두 통과했다(XCUITest 4개, 2개).
 6. iOS 증분 빌드 측정(`docs/building.md`의 표에 열 추가).
 7. Tauri macOS(WKWebView): 출처가 `tauri://localhost`라 같은 출처 `/api/todos` 요청이 되는지 봅니다.
 8. 이슈 #3(Swift API 품질: async/await, sealed 매핑) 검토.
@@ -83,4 +84,4 @@ Windows 환경의 함정은 `docs/building.md`의 "Windows 호스트에서 되�
 | android | 앱·계측 APK 빌드, API 35 에뮬레이터에서 `connectedDebugAndroidTest` 2개 모듈 | 4분 48초 |
 
 - Gradle 캐시는 `actions/setup-java`의 `cache: gradle`입니다. 첫 실행이라 캐시 효과는 아직 재지 않았습니다.
-- iOS 잡이 없어 Kotlin/Native 캐시(`~/.konan`)도 아직 없습니다. 위 "Mac에서 할 일" 5번에서 함께 더합니다.
+- iOS 잡은 `~/.konan`을 `actions/cache`로 캐시합니다(키: `gradle/libs.versions.toml` 해시). 원격에서 아직 돌리지 않아 걸린 시간과 캐시 효과는 모릅니다.
