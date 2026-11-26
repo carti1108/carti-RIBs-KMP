@@ -5,15 +5,24 @@ import com.carti.ribs.samples.multi.login.LoginBuilder
 import com.carti.ribs.samples.multi.settings.SettingsBuilder
 import com.carti.ribs.samples.multi.signup.SignupBuilder
 import com.carti.ribs.samples.multi.todo.TodoBuilder
+import com.carti.ribs.samples.multi.todo.TodoRepository
+import com.carti.ribs.samples.multi.todo.data.RemoteTodoRepository
+import com.carti.ribs.samples.multi.todo.data.SampleTodoServer
 
 /**
  * 플랫폼 진입점. 플랫폼이 구현한 [RootDependency]를 받아 루트 RIB을 만든다.
  * 피처 impl의 Builder를 아는 곳은 여기뿐이다. 루트 Router는 `-api`의 Buildable만 본다.
+ * 데이터 계층(todo-data)을 아는 곳도 여기뿐이다. 저장소를 주지 않으면 [SampleTodoServer]를 쓴다(ADR-0012).
  * 생명주기 호출은 메인 스레드에서 한다(ADR-0005).
  */
-class MultiFeatureApp(dependency: RootDependency) {
+class MultiFeatureApp(dependency: RootDependency, todoRepository: TodoRepository) {
+    constructor(dependency: RootDependency) : this(
+        dependency,
+        RemoteTodoRepository(SampleTodoServer(), SampleTodoServer.BASE_URL),
+    )
+
     private val router: RootRouter = run {
-        val component = RootComponent(dependency)
+        val component = RootComponent(dependency, todoRepository)
         RootRouter(
             interactor = RootInteractor(),
             view = dependency.makeRootView(),

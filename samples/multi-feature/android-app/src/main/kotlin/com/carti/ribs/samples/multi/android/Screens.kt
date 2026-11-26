@@ -38,6 +38,8 @@ object Tags {
     const val SETTINGS_USER_LABEL = "settingsUserLabel"
     const val CLOSE_BUTTON = "closeButton"
     const val LOGOUT_BUTTON = "logoutButton"
+    const val LOADING_INDICATOR = "loadingIndicator"
+    const val RETRY_BUTTON = "retryButton"
     fun todoRow(id: Int): String = "todoRow-$id"
 }
 
@@ -97,7 +99,7 @@ class SignupScreen : SignupViewContract, ComposeRenderable {
 
 class TodoScreen : TodoViewContract, ComposeRenderable {
     override var listener: TodoPresentableListener? = null
-    private var state by mutableStateOf(TodoViewState(userName = "", items = emptyArray()))
+    private var state by mutableStateOf(TodoViewState(userName = "", items = emptyArray(), isLoading = false, errorMessage = null))
 
     override fun render(state: TodoViewState) {
         this.state = state
@@ -107,7 +109,10 @@ class TodoScreen : TodoViewContract, ComposeRenderable {
     override fun Content() = TodoView(
         userName = state.userName,
         rows = state.items.map { TodoRow(it.id, it.title, it.isDone) },
+        isLoading = state.isLoading,
+        errorMessage = state.errorMessage,
         onToggle = { listener?.didToggle(it) },
+        onRetry = { listener?.didTapRetry() },
         onSettings = { listener?.didTapSettings() },
     )
 }

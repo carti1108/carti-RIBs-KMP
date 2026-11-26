@@ -9,12 +9,16 @@ public final class TodoScreen: NSObject, @preconcurrency TodoViewContract, Swift
     @ObservationIgnored public weak var listener: (any TodoPresentableListener)?
     private(set) var userName = ""
     private(set) var items: [TodoItem] = []
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
 
     override public init() {}
 
     public func render(state: TodoViewState) {
         userName = state.userName
         items = (0..<state.items.size).compactMap { state.items.get(index: $0) }
+        isLoading = state.isLoading
+        errorMessage = state.errorMessage
     }
 
     public func makeView() -> AnyView {
@@ -30,6 +34,16 @@ private struct TodoView: View {
             Text("\(screen.userName)님의 할 일")
                 .font(.title2.bold())
                 .accessibilityIdentifier("welcomeLabel")
+            if screen.isLoading {
+                ProgressView().accessibilityIdentifier("loadingIndicator")
+            }
+            if let message = screen.errorMessage {
+                Text(message)
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("errorLabel")
+                Button("다시 시도") { screen.listener?.didTapRetry() }
+                    .accessibilityIdentifier("retryButton")
+            }
             ForEach(screen.items, id: \.id) { item in
                 Button {
                     screen.listener?.didToggle(id: item.id)

@@ -71,6 +71,15 @@ function TodoScreen({ view }: { view: WebTodoView }) {
   return (
     <main>
       <h1>{state.userName}님의 할 일</h1>
+      {state.isLoading && <p role="status">불러오는 중</p>}
+      {state.errorMessage != null && (
+        <>
+          <p role="alert">{state.errorMessage}</p>
+          <button type="button" onClick={() => view.retry()}>
+            다시 시도
+          </button>
+        </>
+      )}
       <ul>
         {state.items.map((item) => (
           <li key={item.id}>

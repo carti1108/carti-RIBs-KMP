@@ -33,7 +33,7 @@ test('빈 이름으로 로그인하면 오류를 보여 준다', () => {
   expect(screen.getByRole('alert').textContent).toBe('이름을 입력하세요')
 })
 
-test('가입 → 할 일 → 설정 → 닫기 → 로그아웃', () => {
+test('가입 → 할 일 → 설정 → 닫기 → 로그아웃', async () => {
   startApp()
 
   fireEvent.click(screen.getByRole('button', { name: '가입하기' }))
@@ -41,7 +41,9 @@ test('가입 → 할 일 → 설정 → 닫기 → 로그아웃', () => {
   fireEvent.click(screen.getByRole('button', { name: '가입' }))
   expect(screen.getByRole('heading').textContent).toBe('carti님의 할 일')
 
-  const first = screen.getAllByRole('checkbox')[0] as HTMLInputElement
+  // 목록은 샘플 서버에서 비동기로 불러온다
+  const first = (await screen.findAllByRole('checkbox'))[0] as HTMLInputElement
+  expect(screen.queryByRole('status')).toBeNull()
   fireEvent.click(first)
   expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).checked).toBe(true)
 
@@ -57,10 +59,11 @@ test('가입 → 할 일 → 설정 → 닫기 → 로그아웃', () => {
   expect(screen.getByRole('heading').textContent).toBe('로그인')
 })
 
-test('설정에서 뒤로 가기는 설정을 닫는다', () => {
+test('설정에서 뒤로 가기는 설정을 닫는다', async () => {
   const app = startApp()
   fireEvent.change(screen.getByLabelText('이름'), { target: { value: 'kim' } })
   fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+  await screen.findAllByRole('checkbox')
   fireEvent.click(screen.getByRole('button', { name: '설정' }))
 
   let handled = false

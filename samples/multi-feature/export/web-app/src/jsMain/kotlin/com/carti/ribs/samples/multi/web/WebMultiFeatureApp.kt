@@ -117,7 +117,7 @@ class WebSignupView : SignupViewContract, WebViewControllable {
 @JsExport
 class WebTodoView : TodoViewContract, WebViewControllable {
     override val screenKey: String = "todo"
-    val store: ViewStore<TodoViewState> = ViewStore(TodoViewState(userName = "", items = emptyArray()))
+    val store: ViewStore<TodoViewState> = ViewStore(TodoViewState(userName = "", items = emptyArray(), isLoading = false, errorMessage = null))
 
     @JsExport.Ignore
     override var listener: TodoPresentableListener? = null
@@ -128,6 +128,10 @@ class WebTodoView : TodoViewContract, WebViewControllable {
 
     fun openSettings() {
         listener?.didTapSettings()
+    }
+
+    fun retry() {
+        listener?.didTapRetry()
     }
 
     @JsExport.Ignore

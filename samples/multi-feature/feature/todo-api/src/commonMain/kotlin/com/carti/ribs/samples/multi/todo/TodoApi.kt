@@ -15,12 +15,19 @@ import kotlin.js.JsExport
 @JsExport
 data class TodoItem(val id: Int, val title: String, val isDone: Boolean)
 
+/** [isLoading] 동안에는 [items]가 비어 있다. 불러오기에 실패하면 [errorMessage]가 있다. */
 @JsExport
-class TodoViewState(val userName: String, val items: Array<TodoItem>)
+class TodoViewState(
+    val userName: String,
+    val items: Array<TodoItem>,
+    val isLoading: Boolean,
+    val errorMessage: String?,
+)
 
 interface TodoPresentableListener {
     fun didToggle(id: Int)
     fun didTapSettings()
+    fun didTapRetry()
 }
 
 interface TodoPresentable : Presentable {
@@ -50,8 +57,13 @@ sealed class TodoRepositoryException(message: String, cause: Throwable?) : Excep
     class Unavailable(message: String, cause: Throwable? = null) : TodoRepositoryException(message, cause)
 }
 
-interface TodoDependency : Dependency {
+/** 플랫폼이 구현하는 부분. 뷰만 만든다. */
+interface TodoViewFactory {
     fun makeTodoView(): TodoViewContract
+}
+
+interface TodoDependency : Dependency, TodoViewFactory {
+    val todoRepository: TodoRepository
 }
 
 interface TodoListener {

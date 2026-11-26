@@ -3,6 +3,7 @@ package com.carti.ribs.samples.multi.android
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onChildAt
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -25,6 +26,8 @@ class MultiFeatureFlowTest {
         compose.onNodeWithTag(Tags.SIGNUP_BUTTON).performClick()
 
         compose.onNodeWithTag(Tags.WELCOME_LABEL).assertTextEquals("carti님의 할 일")
+        // 목록은 샘플 서버에서 비동기로 불러온다
+        compose.waitUntil { compose.onAllNodesWithTag(Tags.todoRow(1)).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag(Tags.todoRow(1)).onChildAt(0).performClick()
 
         compose.onNodeWithTag(Tags.SETTINGS_BUTTON).performClick()

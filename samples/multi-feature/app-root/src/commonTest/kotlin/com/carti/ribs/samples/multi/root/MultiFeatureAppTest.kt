@@ -13,11 +13,17 @@ import com.carti.ribs.samples.multi.settings.SettingsViewState
 import com.carti.ribs.samples.multi.signup.SignupPresentableListener
 import com.carti.ribs.samples.multi.signup.SignupViewContract
 import com.carti.ribs.samples.multi.signup.SignupViewState
+import com.carti.ribs.samples.multi.todo.TodoItem
 import com.carti.ribs.samples.multi.todo.TodoPresentableListener
+import com.carti.ribs.samples.multi.todo.TodoRepository
+import com.carti.ribs.samples.multi.todo.TodoRepositoryException
 import com.carti.ribs.samples.multi.todo.TodoViewContract
 import com.carti.ribs.samples.multi.todo.TodoViewState
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -30,14 +36,18 @@ import kotlin.test.assertTrue
 
 /** 피처 4개를 루트가 조립한 실제 트리를 가짜 뷰로 돌려 화면 흐름을 확인한다. */
 class MultiFeatureAppTest {
+    private lateinit var dispatcher: TestDispatcher
     private lateinit var views: FakeViews
+    private lateinit var repository: FakeTodoRepository
     private lateinit var app: MultiFeatureApp
 
     @BeforeTest
     fun setUp() {
-        RibCoroutinesConfig.dispatchers = SingleDispatcher(StandardTestDispatcher())
+        dispatcher = StandardTestDispatcher()
+        RibCoroutinesConfig.dispatchers = SingleDispatcher(dispatcher)
         views = FakeViews()
-        app = MultiFeatureApp(views)
+        repository = FakeTodoRepository()
+        app = MultiFeatureApp(views, repository)
         app.start(views.host)
     }
 
@@ -164,6 +174,74 @@ class MultiFeatureAppTest {
     }
 
     @Test
+    fun todoShowsLoadingUntilRepositoryAnswers() {
+        (views.root.current as FakeLoginView).listener!!.didTapLogin("kim")
+        val todo = views.root.current as FakeTodoView
+
+        assertTrue(todo.state!!.isLoading)
+        assertTrue(todo.state!!.items.isEmpty())
+
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(todo.state!!.isLoading)
+        assertNull(todo.state!!.errorMessage)
+        assertEquals(FakeTodoRepository.ITEMS, todo.state!!.items.toList())
+        assertEquals(1, repository.calls)
+    }
+
+    @Test
+    fun loadFailureShowsErrorAndRetryLoads() {
+        repository.failuresLeft = 1
+        val todo = login("kim")
+
+        assertFalse(todo.state!!.isLoading)
+        assertEquals(LOAD_ERROR, todo.state!!.errorMessage)
+        assertTrue(todo.state!!.items.isEmpty())
+
+        todo.listener!!.didTapRetry()
+        assertTrue(todo.state!!.isLoading)
+        assertNull(todo.state!!.errorMessage)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(FakeTodoRepository.ITEMS, todo.state!!.items.toList())
+        assertEquals(2, repository.calls)
+    }
+
+    @Test
+    fun retryWhileLoadingDoesNotStartSecondRequest() {
+        repository.gate = CompletableDeferred()
+        val todo = login("kim")
+
+        todo.listener!!.didTapRetry()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, repository.calls)
+    }
+
+    @Test
+    fun logoutWhileLoadingCancelsRequest() {
+        repository.gate = CompletableDeferred()
+        val todo = login("kim")
+        todo.listener!!.didTapSettings()
+
+        (views.root.current as FakeSettingsView).listener!!.didTapLogout()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(repository.cancelled)
+        assertTrue(todo.state!!.isLoading)
+    }
+
+    @Test
+    fun settingsCloseDoesNotReloadTodos() {
+        val todo = login("kim")
+        todo.listener!!.didTapSettings()
+        (views.root.current as FakeSettingsView).listener!!.didTapClose()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, repository.calls)
+    }
+
+    @Test
     fun stopDetachesTree() {
         val login = views.root.current as FakeLoginView
         assertNotNull(login.listener)
@@ -176,11 +254,40 @@ class MultiFeatureAppTest {
 
     private fun login(name: String): FakeTodoView {
         (views.root.current as FakeLoginView).listener!!.didTapLogin(name)
+        dispatcher.scheduler.advanceUntilIdle()
         return views.root.current as FakeTodoView
     }
 
     private companion object {
         const val EMPTY_NAME_ERROR = "이름을 입력하세요"
+        const val LOAD_ERROR = "할 일 목록을 불러오지 못했습니다"
+    }
+}
+
+/** [gate]가 있으면 완료될 때까지 기다린다. [failuresLeft]번은 실패한다. */
+private class FakeTodoRepository : TodoRepository {
+    var gate: CompletableDeferred<Unit>? = null
+    var failuresLeft = 0
+    var calls = 0
+    var cancelled = false
+
+    override suspend fun fetchTodos(): List<TodoItem> {
+        calls++
+        try {
+            gate?.await()
+        } catch (e: CancellationException) {
+            cancelled = true
+            throw e
+        }
+        if (failuresLeft > 0) {
+            failuresLeft--
+            throw TodoRepositoryException.Unavailable("가짜 실패")
+        }
+        return ITEMS
+    }
+
+    companion object {
+        val ITEMS = listOf(TodoItem(1, "우유 사기", false), TodoItem(2, "운동하기", false))
     }
 }
 
