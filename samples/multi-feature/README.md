@@ -5,7 +5,7 @@
 ```
 feature/<이름>-api    계약: 뷰 계약, Dependency, Listener, Buildable
 feature/<이름>-impl   Builder·Interactor·Router (-api만 의존)
-data/todo-data        todo-api의 TodoRepository 구현. HttpTransport, RemoteTodoRepository, SampleTodoServer
+data/todo-data        todo-api의 TodoRepository 구현. HttpTransport(Ktor), RemoteTodoRepository, SampleTodoServer
 app-root              루트 RIB. impl과 data를 아는 유일한 모듈. MultiFeatureApp, LoginDemoApp
 export/ios-app        코드 없이 export 설정만. AppShared.xcframework 하나로 묶는다
 export/web-app        웹 뷰 구현(Kotlin/JS)과 React 앱(react/)
@@ -15,7 +15,13 @@ ios/                  Tuist. Swift 피처 모듈 4개 + 앱 + LoginDemo
 
 화면 흐름: 로그인 ⇄ 가입 → 할 일 → 설정(할 일 위에 겹침) → 로그아웃. 설정을 닫으면 할 일 RIB이 붙어 있던 그대로 돌아옵니다.
 
-할 일 목록은 RIB이 활성화될 때 `TodoRepository`에서 불러옵니다. 실패하면 오류와 다시 시도 버튼을 보여 주고, RIB이 떨어지면 요청이 취소됩니다. 샘플 앱은 네트워크 없이 `SampleTodoServer`의 JSON을 씁니다(ADR-0012).
+할 일 목록은 RIB이 활성화될 때 `TodoRepository`에서 불러옵니다. 실패하면 오류와 다시 시도 버튼을 보여 주고, RIB이 떨어지면 요청이 취소됩니다. 서버 주소를 주면 Ktor로 실제 요청을 보내고, 주지 않으면 네트워크 없이 `SampleTodoServer`의 JSON을 씁니다(ADR-0012, ADR-0013).
+
+| 플랫폼 | 서버 주소 | 없을 때 |
+|---|---|---|
+| 웹 | 항상 같은 출처의 `/api` (`react/public/api/todos`) | - |
+| Android | 인텐트 값 `todoBaseUrl` (`adb shell am start -n com.carti.ribs.samples.multi.android/.MainActivity --es todoBaseUrl http://10.0.2.2:8080/api`) | 샘플 서버 |
+| iOS | 실행 인자 `-todoBaseURL <주소>` | 샘플 서버 |
 
 ## 모듈 경계
 
@@ -32,7 +38,7 @@ ios/                  Tuist. Swift 피처 모듈 4개 + 앱 + LoginDemo
 ./gradlew :samples:multi-feature:android-app:connectedDebugAndroidTest  # 에뮬레이터 필요
 
 cd samples/multi-feature/export/web-app/react
-npm install && npm run kotlin && npm test
+npm install && npm run kotlin && npm test   # Windows에서는 npm run kotlin 대신 그 안의 gradlew 태스크를 직접 실행
 
 ./gradlew :samples:multi-feature:export:ios-app:assembleAppSharedDebugXCFramework   # Mac
 cd samples/multi-feature/ios && tuist generate
@@ -42,7 +48,7 @@ iOS는 `MultiFeatureSample`(전체 앱)과 `LoginDemo`(로그인 피처만) 스�
 
 ## 확인 상태
 
-- 공유 흐름: JVM·JS 테스트 통과 (`MultiFeatureAppTest` 17개, `LoginDemoAppTest` 2개, `RemoteTodoRepositoryTest` 7개)
-- 웹: Vitest·tsc 통과
-- Android: 에뮬레이터(API 37) UI 테스트 2개 통과
+- 공유 흐름: JVM·JS 테스트 통과 (`MultiFeatureAppTest` 17개, `LoginDemoAppTest` 2개, `RemoteTodoRepositoryTest` 7개, `KtorHttpTransportTest` 4개, JVM 전용 `KtorHttpTransportJvmTest` 3개)
+- 웹: Vitest(테스트 서버로 실제 요청 포함) 5개·tsc 통과
+- Android: 에뮬레이터(API 37) UI 테스트 3개 통과(기기 안 서버로 실제 요청 1개 포함)
 - iOS: Windows에서 작성만 했고 Mac에서 빌드·UI 테스트로 확인하지 않았다

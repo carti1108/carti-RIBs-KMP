@@ -31,11 +31,12 @@ import kotlin.js.JsExport
 /**
  * React 앱의 진입점. 루트 RIB을 [rootSlot]에 붙인다.
  * StrictMode의 이중 마운트와 겹치지 않도록 컴포넌트 밖(main.tsx)에서 [start]·[stop]을 부른다.
+ * 할 일 목록은 [todoBaseUrl] 아래 `/todos`로 실제 요청을 보내 가져온다(ADR-0013).
  */
 @JsExport
-class WebMultiFeatureApp {
+class WebMultiFeatureApp(todoBaseUrl: String) {
     val rootSlot: ScreenSlot = ScreenSlot()
-    private val app = MultiFeatureApp(WebAppComponent())
+    private val app = MultiFeatureApp(WebAppComponent(), todoBaseUrl)
 
     fun start() {
         app.start(
