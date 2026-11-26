@@ -32,6 +32,24 @@ interface TodoViewControllable : ViewControllable
 
 interface TodoViewContract : TodoPresentable, TodoViewControllable
 
+/**
+ * 할 일 목록 저장소. 피처는 이 인터페이스만 알고 구현(todo-data)은 모른다(ADR-0012).
+ * 구현은 조립 모듈(app-root)이 넣는다.
+ */
+interface TodoRepository {
+    /**
+     * 목록을 가져온다. 호출한 코루틴이 취소되면 `CancellationException`이 그대로 올라온다.
+     * 그 밖의 실패는 [TodoRepositoryException]으로 던진다.
+     */
+    suspend fun fetchTodos(): List<TodoItem>
+}
+
+/** 피처가 다르게 다루는 실패만 나눈다. 원인은 [cause]에 남긴다. */
+sealed class TodoRepositoryException(message: String, cause: Throwable?) : Exception(message, cause) {
+    /** 지금은 가져올 수 없다. 다시 시도할 수 있다. */
+    class Unavailable(message: String, cause: Throwable? = null) : TodoRepositoryException(message, cause)
+}
+
 interface TodoDependency : Dependency {
     fun makeTodoView(): TodoViewContract
 }
