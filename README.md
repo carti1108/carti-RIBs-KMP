@@ -61,6 +61,7 @@ Android 타깃은 SDK 경로(`local.properties`의 `sdk.dir` 또는 `ANDROID_HOM
 
 - [아키텍처 규칙](docs/architecture.md)
 - [원본 대비 파일 비교](docs/upstream-comparison.md)
+- [빌드 실측(웹 크기, 증분 빌드)](docs/building.md)
 - [ADR 목록](docs/adr/README.md)
 - [작업 규칙](AGENTS.md)
 
