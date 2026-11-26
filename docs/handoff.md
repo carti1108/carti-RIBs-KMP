@@ -46,7 +46,7 @@ Windows에서는 iOS를 한 번도 빌드하지 못했습니다. 아래 순서�
    - 잡 내용: XCFramework 2개, `swift test`(RIBsKMPSwiftUI), ios-login·multi-feature XCUITest. Tuist는 `jdx/mise-action`으로 4.191.5를 받는다. 시뮬레이터는 러너에 있는 첫 iPhone을 고른다. 같은 명령을 Mac에서 돌려 모두 통과했다(XCUITest 4개, 2개).
 6. (완료) iOS 증분 빌드 측정. 다른 PC라 별도 표로 `docs/building.md` "iOS 증분 빌드"에 적었다. 수정 시나리오는 모두 11~12초였다.
 7. (완료) Tauri macOS(WKWebView): 출처가 `tauri://localhost`라 같은 출처 `/api/todos` 요청이 되는지 봅니다. 로그인 뒤 목록 3개가 그려졌다(사람이 직접 입력해 확인). `docs/building.md` "Tauri" 참고.
-8. (점검 완료, 결정 남음) 이슈 #3(Swift API 품질: async/await, sealed 매핑) 검토. 점검 결과는 [swift-api-review.md](swift-api-review.md)에 있다. #3의 완료 기준이 ADR-0006과 충돌해서 어느 쪽으로 갈지 소유자가 정해야 한다.
+8. (완료, ADR-0006 유지) 이슈 #3(Swift API 품질: async/await, sealed 매핑) 검토. 점검 결과는 [swift-api-review.md](swift-api-review.md)에 있다. #3의 완료 기준이 ADR-0006과 충돌해서, ADR-0006을 유지하고 #3의 완료 기준을 바꾸기로 했다(같은 문서 "결정").
 
 ## 알고 넘어갈 것
 

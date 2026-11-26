@@ -33,9 +33,10 @@ iOS 샘플의 Swift 코드는 `async`, `for await`, sealed 타입을 하나도 �
 - `TodoViewState.items`가 `List`가 아니라 `Array`인 이유는 `@JsExport` 때문이다. `List`라면 Swift는 `[TodoItem]`을 바로 받는다.
 - 두 샘플의 `TodoItem.id`는 `Int`(Swift `Int32`)와 `Long`(Swift `Int64`)으로 서로 다르다.
 
-## 정해야 할 것
+## 결정
 
-이슈 #3의 완료 기준("iOS 샘플이 `async/await`·`for await`로 코어를 쓴다")은 채택된 ADR-0006("공유 코드가 Swift에 Flow나 suspend를 노출하지 않는다")과 충돌한다. 두 방향이 있다.
+2026-11-26, ADR-0006을 유지하기로 했습니다. 새 ADR은 쓰지 않습니다.
 
-- **ADR-0006을 유지한다**: #3의 완료 기준을 "Swift 경계에 Flow·suspend·sealed가 없음을 규칙으로 고정한다"로 바꾼다. 남는 일은 경계 타입 가이드(위 표), 그리고 필요하면 `ribs-core`의 Flow 속성을 Swift 헤더에서 숨기는 것(`@HiddenFromObjC`)이다.
-- **ADR-0006을 대체한다**: SKIE나 Swift Export를 다시 검토하는 새 ADR을 쓴다. ADR-0006이 기각한 이유(비공식 툴체인, Kotlin 버전 종속, 실험 단계)가 지금도 맞는지부터 확인해야 한다.
+- Swift 경계(뷰 계약, 리스너, 뷰 상태, 앱 진입점)에는 Flow, suspend, sealed를 두지 않습니다. 상태는 `render<Name>(state:)`로 밀어 넣고, 입력은 동기 리스너 메서드로 받습니다.
+- 이슈 #3의 완료 기준을 "iOS 샘플이 `async/await`·`for await`로 코어를 쓴다"에서 "Swift 경계 규칙이 문서로 남고, iOS 샘플이 그 규칙을 따른다"로 바꿉니다. 경계 규칙은 이 문서의 "현재 경계" 표가 맡습니다.
+- 남은 선택 과제: `ribs-core`의 `isActiveStream`, `lifecycle` 같은 Flow 속성을 `@HiddenFromObjC`로 Swift 헤더에서 숨길 수 있습니다. Swift에서 쓰는 곳이 없어 급하지 않습니다.
